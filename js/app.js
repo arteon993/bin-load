@@ -8,27 +8,39 @@ function initKakao() {
   }
 }
 
+// ═══ 출발 일시 한국어 표기 ═══
+function formatDepartureKo(iso) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const h = d.getHours();
+  const min = d.getMinutes();
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h % 12 || 12;
+  const minStr = min === 0 ? '' : ` ${min}분`;
+  return `${y}년 ${m}월 ${day}일 ${ampm} ${h12}시${minStr}`;
+}
+
 // ═══ D-Day ═══
 function calcDday() {
   const target = new Date(window.DATA.META.startDateTime || window.DATA.META.startDate);
   const now = new Date();
   const diffMs = target - now;
   if (diffMs > 0) {
-    // 출발 전: D-X일 X시간 X분 X초
     const days = Math.floor(diffMs / 86400000);
     const hours = Math.floor((diffMs % 86400000) / 3600000);
     const mins = Math.floor((diffMs % 3600000) / 60000);
     const secs = Math.floor((diffMs % 60000) / 1000);
-    return `D-${days}일 ${hours}시 ${mins}분 ${secs}초`;
+    return `D-DAY ${days}일 ${hours}시간 ${mins}분 ${secs}초 남음`;
   }
-  // 출발 후: 경과 시간 (초 단위)
   const after = Math.abs(diffMs);
   const days = Math.floor(after / 86400000);
   const hours = Math.floor((after % 86400000) / 3600000);
   const mins = Math.floor((after % 3600000) / 60000);
   const secs = Math.floor((after % 60000) / 1000);
-  if (days > 0) return `D+${days}일 ${hours}시 ${mins}분 ${secs}초`;
-  return `D-DAY ${hours}시 ${mins}분 ${secs}초 경과`;
+  if (days > 0) return `D+DAY ${days}일 ${hours}시간 ${mins}분 ${secs}초 경과`;
+  return `D-DAY ${hours}시간 ${mins}분 ${secs}초 경과`;
 }
 function startDdayCountdown() {
   const update = () => {
@@ -40,7 +52,7 @@ function startDdayCountdown() {
 }
 
 // ═══ 라우팅 ═══
-const VIEWS = ['intro', 'menu', 'a', 'b', 'compare', 'return'];
+const VIEWS = ['intro', 'menu', 'a', 'b', 'compare', 'return', 'facilities'];
 let currentView = 'intro';
 
 function showView(name) {
@@ -64,6 +76,9 @@ function showView(name) {
   }
   if (name === 'return') {
     setTimeout(() => updateReturnUI(), 100);
+  }
+  if (name === 'facilities') {
+    setTimeout(() => renderFacilities(), 100);
   }
 }
 
@@ -143,6 +158,7 @@ function renderMenu() {
       <h1 class="menu-title serif">${D.META.title}</h1>
       <div class="menu-divider"></div>
       <div class="menu-sub">${D.META.subtitle}  ·  ${D.META.startDate.replace(/-/g, '. ')} ~ ${D.META.endDate.slice(-2)}</div>
+      <div class="menu-depart">${formatDepartureKo(D.META.startDateTime)} 출발</div>
       <div class="menu-dday dday-text">${dday}</div>
     </div>
 
@@ -150,6 +166,7 @@ function renderMenu() {
       ${renderBanner('A', D.PLANS.A, false)}
       ${renderBanner('B', D.PLANS.B, true)}
       ${renderCompareBanner()}
+      ${renderFacilitiesBanner()}
     </div>
 
     <div class="menu-footer">
@@ -186,6 +203,27 @@ function renderBanner(code, plan, recommend) {
         <div class="banner-stat">
           <div class="banner-stat-num">${plan.kpi.toll === 0 ? '0' : plan.kpi.toll.toLocaleString()}<span style="font-size:14px;color:var(--text-mid);">원</span></div>
           <div class="banner-stat-label">통행료</div>
+        </div>
+      </div>
+      <div class="banner-arrow">→</div>
+    </a>
+  `;
+}
+
+function renderFacilitiesBanner() {
+  const cnt = (window.DATA.NEARBY_FACILITIES || []).length;
+  return `
+    <a href="#facilities" class="banner">
+      <div class="banner-tag">FACILITIES</div>
+      <div class="banner-title serif">펜션 주변 편의시설</div>
+      <div class="banner-sub">편의점·마트·주유소·약국·병원·ATM 한눈에</div>
+      <div class="banner-stats" style="border-top:none; padding-top:0;">
+        <div style="display:flex; gap:10px; align-items:center; font-size:13px;">
+          <span style="color:#16A085;">🏪 편의점</span>
+          <span style="color:#1F618D;">🛒 마트</span>
+          <span style="color:#D35400;">⛽ 주유</span>
+          <span style="color:#C0392B;">🏥 응급</span>
+          <span style="color:var(--text-low); margin-left:6px;">총 ${cnt}곳</span>
         </div>
       </div>
       <div class="banner-arrow">→</div>
@@ -253,19 +291,6 @@ function renderPlan(code) {
       </div>
     </div>
 
-    <!-- 내 선택 합계 -->
-    <div class="section" style="padding-bottom:0;">
-      <div class="section-num">★  MY PICK</div>
-      <div class="section-title serif">내 선택 합계</div>
-      <div class="section-sub">아래 카드에서 점심 1개 + 놀거리 1~2개 "선택" 누르면 자동 계산</div>
-    </div>
-    <div class="sel-summary-box" id="sel-summary-${code}">
-      <div class="sel-empty">
-        <div class="sel-empty-title">선택한 옵션이 없어요</div>
-        <div class="sel-empty-sub">점심 1개 + 놀거리 1~2개를 골라보세요 ↓</div>
-      </div>
-    </div>
-
     <!-- 펜션 정보 -->
     <div class="pension-card">
       <div class="pension-label">YOUR STAY</div>
@@ -320,6 +345,19 @@ function renderPlan(code) {
       </div>
     </div>
 
+    <!-- 내 선택 합계 (수산시장 비교 직전) -->
+    <div class="section" style="padding-bottom:0;">
+      <div class="section-num">★  MY PICK</div>
+      <div class="section-title serif">내 선택 합계</div>
+      <div class="section-sub">위 점심·놀거리 카드에서 "선택" 누르면 여기에 자동 합산</div>
+    </div>
+    <div class="sel-summary-box" id="sel-summary-${code}">
+      <div class="sel-empty">
+        <div class="sel-empty-title">선택한 옵션이 없어요</div>
+        <div class="sel-empty-sub">위 카드에서 점심 1개 + 놀거리 1~2개를 골라보세요 ↑</div>
+      </div>
+    </div>
+
     <!-- 수산시장 비교 -->
     <div class="section">
       <div class="section-num">05  MARKET</div>
@@ -341,26 +379,6 @@ function renderPlan(code) {
         <div class="banner-sub">체크아웃 → 카페 → 길목 해장 → 집</div>
         <div class="banner-arrow">→</div>
       </a>
-    </div>
-
-    <!-- 비용 -->
-    <div class="section">
-      <div class="section-num">07  COST</div>
-      <div class="section-title serif">예상 비용</div>
-      <div class="section-sub">가성비 조합 · 어른 4 + 6세 아이 2</div>
-    </div>
-    <div class="cost-box">
-      ${plan.cost.rows.map(r => `
-        <div class="cost-row">
-          <div class="cost-cat">${r.cat}</div>
-          <div class="cost-name">${r.name}</div>
-          <div class="cost-price">${r.price}</div>
-        </div>
-      `).join('')}
-      <div class="cost-total">
-        <div class="cost-total-label">합계 (1일차)</div>
-        <div class="cost-total-amount">${plan.cost.total}</div>
-      </div>
     </div>
 
     <div class="app-footer">
@@ -421,23 +439,79 @@ function calcReturn() {
   const sel = getSelection().R || {};
   const R = window.DATA.RETURN_DAY;
   let cost = 0, items = [];
+  let extraKm = 0;
   if (sel.cafe) {
     const it = R.cafes.find(x => x.tag === sel.cafe);
-    if (it) { cost += parsePrice(it.price); items.push(it); }
+    if (it) { cost += parsePrice(it.price); items.push(it); extraKm += it.km * 2; }
   }
   if (sel.haejang) {
     const it = R.haejang.find(x => x.tag === sel.haejang);
-    if (it) { cost += parsePrice(it.price); items.push(it); }
+    if (it) { cost += parsePrice(it.price); items.push(it); extraKm += it.km * 2; }
   }
-  return { items, cost, sel };
+  // 복귀일 detour 주유비 (펜션 → 카페 → 해장 왕복)
+  const fuel = Math.round((extraKm / 13) * 1700);
+  return { items, cost, fuel, extraKm, totalCost: cost + fuel, sel };
 }
 function updateCompareUI() {
   const box = document.getElementById('compare-grand');
-  if (!box) return;
   const a = calcSelection('A');
   const b = calcSelection('B');
   const r = calcReturn();
-  box.innerHTML = renderCompareGrand(a, b, r);
+  if (box) box.innerHTML = renderCompareGrand(a, b, r);
+  const tbl = document.getElementById('compare-table');
+  if (tbl) tbl.innerHTML = renderCompareTable(a, b, r);
+}
+
+// ═══ 비교 테이블 (선택 연동) ═══
+function renderCompareTable(a, b, r) {
+  const D = window.DATA;
+  const fmt = n => (n/10000).toFixed(1) + '만원';
+  const aTotal = a.totalCost + r.totalCost;
+  const bTotal = b.totalCost + r.totalCost;
+  const hasAnySel = a.items.length || b.items.length || r.items.length;
+  const findName = (list, tag) => { const it = list.find(x=>x.tag===tag); return it ? `${it.tag} ${it.name}` : '미선택'; };
+  const cafeName = r.sel.cafe ? findName(D.RETURN_DAY.cafes, r.sel.cafe) : '미선택';
+  const haejangName = r.sel.haejang ? findName(D.RETURN_DAY.haejang, r.sel.haejang) : '미선택';
+
+  // 정적 비교 행에서 총 비용은 선택 시 동적으로 대체
+  const baseRows = D.COMPARE.map(c => {
+    if (c.label === '총 비용' && hasAnySel) {
+      return {
+        label: '총 비용 (선택 반영)',
+        a: fmt(aTotal), b: fmt(bTotal),
+        winner: aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : ''),
+      };
+    }
+    return c;
+  });
+
+  // 선택 연동 추가 행
+  const selRows = [
+    { label:'선택한 점심',
+      a: a.sel.lunch ? findName(D.PLANS.A.lunch, a.sel.lunch) : '미선택',
+      b: b.sel.lunch ? findName(D.PLANS.B.lunch, b.sel.lunch) : '미선택', winner:'' },
+    { label:'선택한 놀거리',
+      a: (a.sel.play||[]).map(t => findName(D.PLANS.A.play, t)).join('<br>') || '미선택',
+      b: (b.sel.play||[]).map(t => findName(D.PLANS.B.play, t)).join('<br>') || '미선택', winner:'' },
+    { label:'복귀 카페 (공통)', a: cafeName, b: cafeName, winner:'' },
+    { label:'복귀 해장 (공통)', a: haejangName, b: haejangName, winner:'' },
+  ];
+
+  const allRows = [...baseRows, ...selRows];
+  return `
+    <div class="compare-head">
+      <div>비교 항목</div>
+      <div class="col-a">A 안</div>
+      <div class="col-b">B 안</div>
+    </div>
+    ${allRows.map(c => `
+      <div class="compare-row">
+        <div>${c.label}</div>
+        <div class="${c.winner==='A' ? 'winner-A' : ''}">${c.a}</div>
+        <div class="${c.winner==='B' ? 'winner-B' : ''}">${c.b}</div>
+      </div>
+    `).join('')}
+  `;
 }
 function parsePrice(p) {
   if (!p || p.includes('무료')) return 0;
@@ -542,6 +616,10 @@ function renderSelSummary(planCode, r) {
         <span class="sel-item-price">${((r.fuel + r.toll)/10000).toFixed(1)}만원</span>
       </div>
     </div>
+    <a href="#compare" class="sel-cta">
+      <span>📊</span>
+      <span>A·B 안 비교 페이지로 →</span>
+    </a>
   `;
 }
 window.toggleSelection = toggleSelection;
@@ -602,14 +680,16 @@ window.scrollCards = function(btn, dir) {
 
 // ═══ 카드 ═══
 function renderCard(it, planCode, kind) {
-  const photoStyle = it.photo
-    ? `background-image:url('${it.photo}'); background-color:${it.tone};`
+  // 음식점·카페·해장은 사진 없음 (명시적 photo 있는 관광지만 표시)
+  const photo = it.photo || '';
+  const photoStyle = photo
+    ? `background-image:url('${photo}'); background-color:${it.tone};`
     : `background-color:${it.tone};`;
-  const fallback = it.photo ? '' : `<div class="card-photo-fallback">${it.name}</div>`;
+  const fallback = photo ? '' : `<div class="card-photo-fallback">${it.name}</div>`;
 
   const naverUrl = it.naver || window.DATA.NAVER(it.name);
   const kmapUrl = it.url || window.DATA.KMAP(it.name);
-  const selectable = planCode && kind && (kind === 'lunch' || kind === 'play');
+  const selectable = planCode && kind && (kind === 'lunch' || kind === 'play' || kind === 'cafe' || kind === 'haejang');
 
   return `
     <div class="card" ${selectable ? `data-card-plan="${planCode}" data-card-kind="${kind}" data-card-tag="${it.tag}"` : ''}>
@@ -715,7 +795,7 @@ function renderReturn() {
     <div class="section" id="return-cafe-section">
       <div class="section-num">02  CAFE</div>
       <div class="section-title serif">모닝 카페 (${R.cafes.length})</div>
-      <div class="section-sub">펜션 인근 · 오션뷰 · 가성비</div>
+      <div class="section-sub">펜션 인근 · 오션뷰·정원 · 카드의 "선택" 누르면 비교 페이지에 자동 합산</div>
     </div>
     <div class="cards-wrap">
       <button class="cards-nav prev" onclick="scrollCards(this,-1)" aria-label="이전">‹</button>
@@ -739,10 +819,80 @@ function renderReturn() {
       </div>
     </div>
 
+    <a href="#compare" class="sel-cta" style="margin: 24px 16px 0;">
+      <span>📊</span>
+      <span>비교 페이지로 돌아가기 →</span>
+    </a>
+
     <div class="app-footer">
       <a href="#a" class="card-action" style="display:inline-block; padding:12px 24px; margin-right:8px;">A안 다시 보기</a>
       <a href="#b" class="card-action primary" style="display:inline-block; padding:12px 24px;">B안 다시 보기</a>
       <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · DAY 2</div>
+    </div>
+  `;
+}
+
+// ═══ 펜션 주변 편의시설 페이지 ═══
+function renderFacilities() {
+  const view = document.querySelector('.view-facilities');
+  if (!view) return;
+  const D = window.DATA;
+  const list = D.NEARBY_FACILITIES || [];
+  const M = D.FACILITY_META || {};
+  const types = ['cvs','mart','gas','pharm','med','bank'];
+
+  const groupHTML = types.map(t => {
+    const items = list.filter(f => f.type === t);
+    if (!items.length) return '';
+    const meta = M[t] || { label:'', icon:'•', color:'#888' };
+    return `
+      <div class="section" style="padding-top:24px;">
+        <div class="section-num" style="color:${meta.color};">${meta.icon}  ${meta.label.toUpperCase()}</div>
+        <div class="section-title serif">${meta.label} (${items.length})</div>
+      </div>
+      <div class="facility-list">
+        ${items.map(f => {
+          const q = encodeURIComponent(f.name + ' ' + (f.addr||''));
+          return `
+            <a class="facility-row" href="https://map.kakao.com/?q=${q}" target="_blank" rel="noopener" style="border-left-color:${meta.color};">
+              <div class="facility-ic" style="background:${meta.color};">${meta.icon}</div>
+              <div class="facility-body">
+                <div class="facility-top">
+                  <span class="facility-name">${f.name}</span>
+                  <span class="facility-type" style="color:${meta.color};">${f.km}km · ${f.min}분</span>
+                </div>
+                <div class="facility-sub">${f.sub}</div>
+                ${f.note ? `<div class="facility-note">💡 ${f.note}</div>` : ''}
+                <div class="facility-addr">${f.addr || ''}</div>
+              </div>
+              <div class="facility-arrow">→</div>
+            </a>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }).join('');
+
+  view.innerHTML = `
+    <div class="app-header">
+      <button class="back-btn" onclick="location.hash='menu'">←</button>
+      <div class="header-title latin">FACILITIES</div>
+      <div class="header-actions">
+        <button class="icon-btn music-toggle" onclick="toggleMute()">🔊</button>
+      </div>
+    </div>
+
+    <div class="plan-hero">
+      <div class="plan-tag">PENSION AREA</div>
+      <h1 class="plan-title serif">펜션 주변 편의시설</h1>
+      <div class="plan-subtitle">${D.META.pension.name} 인근 · 거리·이동시간은 펜션 기준</div>
+    </div>
+
+    ${groupHTML}
+
+    <div class="app-footer">
+      <a href="#menu" class="card-action" style="display:inline-block; padding:12px 24px;">← 메뉴로</a>
+      <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · NEARBY</div>
     </div>
   `;
 }
@@ -795,8 +945,8 @@ function renderMarketCompare(planCode) {
 
 // ═══ 비교 페이지 ═══
 function renderCompareGrand(a, b, r) {
-  const aTotal = a.totalCost + r.cost;
-  const bTotal = b.totalCost + r.cost;
+  const aTotal = a.totalCost + r.totalCost;
+  const bTotal = b.totalCost + r.totalCost;
   const cheaper = aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : '=');
   const fmt = n => (n/10000).toFixed(1) + '만';
   return `
@@ -818,12 +968,17 @@ function renderCompareGrand(a, b, r) {
         </div>
       </div>
     </div>
-    <div class="grand-return">
-      <div class="grand-return-label">＋ 복귀 (5/5 공통) <span style="color:#666;">${r.items.length?'':'아래에서 선택'}</span></div>
-      <div class="grand-return-items">
-        ${r.items.length ? r.items.map(it=>`<div><span class="grand-pill">${it.tag}</span> ${it.name} <strong>${it.price}</strong></div>`).join('') : '<div class="grand-empty">카페 + 해장 선택 시 합산</div>'}
+    <a href="#return" class="grand-return grand-return-link">
+      <div class="grand-return-label">
+        ＋ 복귀 (5/5 공통)
+        <span style="color:#666;">${r.items.length?`소계 ${fmt(r.totalCost)}원`:'탭하여 선택 →'}</span>
       </div>
-    </div>
+      <div class="grand-return-items">
+        ${r.items.length ? r.items.map(it=>`<div><span class="grand-pill">${it.tag}</span> ${it.name} <strong>${it.price}</strong></div>`).join('') : '<div class="grand-empty">카페 + 해장 선택 시 합산 · 탭해서 페이지로 이동</div>'}
+        ${r.fuel > 0 ? `<div><span class="grand-pill">⛽</span> 복귀 detour 주유 (${r.extraKm.toFixed(0)}km) <strong>${fmt(r.fuel)}원</strong></div>` : ''}
+      </div>
+      <div class="grand-return-cta">${r.items.length ? '복귀 옵션 변경하기' : '복귀 옵션 선택하기'} →</div>
+    </a>
     <div class="grand-totals">
       <div class="grand-total ${cheaper==='A'?'winner':''}">
         <div>A안 종합</div>
@@ -895,23 +1050,7 @@ function renderCompare() {
     </div>
     <div class="grand-box" id="compare-grand"></div>
 
-    <!-- 복귀 옵션 선택 -->
-    ${renderReturnPicker()}
-
-    <div class="compare-table">
-      <div class="compare-head">
-        <div>비교 항목</div>
-        <div class="col-a">A 안</div>
-        <div class="col-b">B 안</div>
-      </div>
-      ${D.COMPARE.map(c => `
-        <div class="compare-row">
-          <div>${c.label}</div>
-          <div class="${c.winner==='A' ? 'winner-A' : ''}">${c.a}</div>
-          <div class="${c.winner==='B' ? 'winner-B' : ''}">${c.b}</div>
-        </div>
-      `).join('')}
-    </div>
+    <div class="compare-table" id="compare-table"></div>
 
     <div class="compare-verdict">
       <div class="verdict-label">FINAL VERDICT</div>
@@ -933,6 +1072,23 @@ function renderCompare() {
       <div class="footer-meta">BIN MICHELIN ROAD</div>
     </div>
   `;
+}
+
+// ═══ 실제 도로 경로 (OSRM 공개 API) ═══
+async function fetchOSRMRoute(waypoints) {
+  if (!waypoints || waypoints.length < 2) return null;
+  const coords = waypoints.map(w => `${w.lon},${w.lat}`).join(';');
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j && j.routes && j.routes[0] && j.routes[0].geometry) {
+      // GeoJSON [lon,lat] → Leaflet [lat,lon]
+      return j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+    }
+  } catch (e) { /* 네트워크 실패 시 직선 유지 */ }
+  return null;
 }
 
 // ═══ 지도 (Leaflet — 도메인 인증 불필요) ═══
@@ -978,12 +1134,18 @@ function initPlanMaps(code) {
   });
   vworld.addTo(map);
 
-  // 폴리라인
-  const latlngs = plan.route.map(pt => [pt.lat, pt.lon]);
-  L.polyline(latlngs, {
-    color: plan.accent, weight: 4, opacity: 0.85,
-    dashArray: code === 'A' ? '8,4' : null,
+  // 폴리라인 — 일단 직선 그려두고, 실제 도로 경로 받아서 갱신
+  let latlngs = plan.route.map(pt => [pt.lat, pt.lon]);
+  const polyline = L.polyline(latlngs, {
+    color: plan.accent, weight: 5, opacity: 0.9,
   }).addTo(map);
+  // 실제 도로 경로 (OSRM) — 비동기 갱신
+  fetchOSRMRoute(plan.route).then(roadLatlngs => {
+    if (roadLatlngs && roadLatlngs.length > 1) {
+      polyline.setLatLngs(roadLatlngs);
+      try { map.fitBounds(roadLatlngs, { padding: [40,40] }); } catch(e) {}
+    }
+  });
 
   // 마커 (커스텀 디자인)
   plan.route.forEach(pt => {
@@ -1013,14 +1175,20 @@ function initPlanMaps(code) {
   // 지도 범위 자동
   map.fitBounds(latlngs, { padding: [40,40] });
 
-  // 오버레이 버튼 (카카오맵 열기)
+  // 오버레이 버튼 (카카오맵 길찾기 — 실제 경로로 열기)
   const overlay = document.createElement('button');
   overlay.className = 'map-overlay';
-  overlay.textContent = '카카오맵에서 보기 →';
+  overlay.textContent = '카카오맵 길찾기 →';
   overlay.style.zIndex = '999';
   overlay.onclick = (e) => {
     e.stopPropagation();
-    window.open(`https://map.kakao.com/?q=${encodeURIComponent(D.META.pension.name)}`, '_blank');
+    const s = plan.route[0];
+    const eEnd = plan.route[plan.route.length-1];
+    // 카카오맵 길찾기 URL (출발↔도착 좌표 직접 지정)
+    const url = `https://map.kakao.com/?sName=${encodeURIComponent(s.name)}` +
+                `&eName=${encodeURIComponent(eEnd.name)}` +
+                `&sX=${s.lon}&sY=${s.lat}&eX=${eEnd.lon}&eY=${eEnd.lat}`;
+    window.open(url, '_blank');
   };
   container.appendChild(overlay);
 
@@ -1058,6 +1226,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderPlan('B');
   renderCompare();
   renderReturn();
+  renderFacilities();
   window.addEventListener('hashchange', router);
   router();
   startDdayCountdown();

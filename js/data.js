@@ -10,7 +10,7 @@ const META = {
   title: '빈슐랭 로드',
   subtitle: '안면도 1박 2일',
   startDate: '2026-05-04',
-  startDateTime: '2026-05-04T10:30:00',  // 출발 시각 (10:30)
+  startDateTime: '2026-05-04T10:00:00',  // 출발 시각 (오전 10시 정각)
   endDate: '2026-05-05',
   people: '어른 4 + 6세 아이 2',
   pension: {
@@ -31,15 +31,80 @@ const META = {
 
 // 사진 URL (TourAPI에서 받은 것)
 const PHOTOS = {
-  '꽃지해수욕장': 'http://tong.visitkorea.or.kr/cms/resource/23/3498123_image2_1.jpg',
-  '안면도자연휴양림': 'http://tong.visitkorea.or.kr/cms/resource/15/2787315_image2_1.JPG',
-  '백사장항': 'http://tong.visitkorea.or.kr/cms/resource/06/3022906_image_1.jpg',
-  '방포항': 'http://tong.visitkorea.or.kr/cms/resource/65/2461165_image2_1.jpg',
-  '오마이갤러리': 'http://tong.visitkorea.or.kr/cms/resource/79/3060079_image2_1.jpg',
-  '대천해수욕장': 'http://tong.visitkorea.or.kr/cms/resource/57/3500457_image2_1.jpg',
-  '보령석탄박물관': 'http://tong.visitkorea.or.kr/cms/resource/03/2901003_image2_1.jpg',
-  '대천항수산시장': 'http://tong.visitkorea.or.kr/cms/resource/01/2750901_image_1.jpg',
+  "꽃지해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/23/3498123_image2_1.jpg',
+  "안면도자연휴양림": 'https://tong.visitkorea.or.kr/cms/resource/40/4057440_image2_1.jpg',
+  "백사장항": 'https://tong.visitkorea.or.kr/cms/resource/61/3340561_image2_1.jpg',
+  "방포항": 'https://tong.visitkorea.or.kr/cms/resource/84/3034584_image2_1.jpg',
+  "오마이갤러리": 'https://tong.visitkorea.or.kr/cms/resource/66/3336266_image2_1.jpg',
+  "대천해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/66/3513866_image2_1.jpg',
+  "보령석탄박물관": 'https://tong.visitkorea.or.kr/cms/resource/57/3560557_image2_1.jpg',
+  "대천항수산시장": 'https://tong.visitkorea.or.kr/cms/resource/74/2751174_image2_1.png',
+  "무창포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/13/3513913_image2_1.jpg',
+  "천북굴단지": 'https://tong.visitkorea.or.kr/cms/resource/72/3581872_image2_1.jpg',
+  "꽃지해물칼국수": 'https://tong.visitkorea.or.kr/cms/resource/73/2850073_image2_1.jpg',
+  "천리포수목원": 'https://tong.visitkorea.or.kr/cms/resource/72/3493772_image2_1.jpg',
+  "만리포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/35/2653435_image2_1.jpg',
 };
+
+// 카드에 photo가 비어있을 때 카테고리·키워드별 fallback 사진 (Unsplash)
+const U = (id, w=600) => `https://images.unsplash.com/photo-${id}?w=${w}&q=80&auto=format&fit=crop`;
+const CATEGORY_PHOTOS = {
+  // 음식 카테고리
+  '한식':              U('1583224944844-5b268c057b72'),
+  '한식·고기':          U('1583224944844-5b268c057b72'),
+  '한식·국수':          U('1626804475297-41608ea09aeb'),
+  '한식·간장게장':      U('1565958011703-44f9829ba187'),
+  '한식·게국지':        U('1606755456206-b25948cbb3df'),
+  '한식·사골':          U('1626804475297-41608ea09aeb'),
+  '중식':              U('1623341214825-9f4f963727da'),
+  '중식·짬뽕':          U('1623341214825-9f4f963727da'),
+  '중식·짜장':          U('1623341214825-9f4f963727da'),
+  '일식':              U('1579871494447-9811cf80d66c'),
+  '일식·초밥':          U('1579871494447-9811cf80d66c'),
+  '일식·돈까스':        U('1606755456206-b25948cbb3df'),
+  '양식':              U('1551183053-bf91a1d81141'),
+  '양식·이탈리안':      U('1551183053-bf91a1d81141'),
+  '카페':              U('1495474472287-4d71bcdd2085'),
+  '카페·오션뷰':        U('1517248135467-4c7edcad34c4'),
+  '카페·정원':          U('1497644083578-611b798c60f3'),
+  '해장':              U('1626804475297-41608ea09aeb'),
+  '해장·콩나물국밥':    U('1626804475297-41608ea09aeb'),
+  '해장·뼈해장국':      U('1547592180-85f173990554'),
+  // 음식 키워드
+  '회':                U('1579584425555-c3ce17fd4351'),
+  '꽃게':              U('1565958011703-44f9829ba187'),
+  '새우':              U('1565958011703-44f9829ba187'),
+  '시장':              U('1559339352-11d035aa65de'),
+  '굴':                U('1559339352-11d035aa65de'),
+  '칼국수':            U('1626804475297-41608ea09aeb'),
+  // 놀거리 키워드
+  '해수욕장':          U('1507525428034-b723cf961d3e'),
+  '머드':              U('1581088658509-8b4ab73ba2ad'),
+  '갯벌':              U('1500382017468-9049fed747ef'),
+  '짚라인':            U('1597178193020-67c0f5ae8506'),
+  '박물관':            U('1503152394-c571994fd383'),
+  '동물원':            U('1474511320723-9a56873867b5'),
+  '정원':              U('1497644083578-611b798c60f3'),
+  '수목원':            U('1500964757637-c85e8a162699'),
+  '솔숲':              U('1500964757637-c85e8a162699'),
+  '공룡':              U('1633177031940-19a7e1a9ad4f'),
+  '사구':              U('1473862170180-fa3c8b0a2731'),
+  '모래언덕':          U('1473862170180-fa3c8b0a2731'),
+  '트릭아트':          U('1499856871958-5b9627545d1a'),
+  '빛축제':            U('1483478550801-ceba5fe50e8e'),
+  '야간':              U('1483478550801-ceba5fe50e8e'),
+  '굴단지':            U('1559339352-11d035aa65de'),
+  '바닷길':            U('1500382017468-9049fed747ef'),
+};
+// 키워드/카테고리/메뉴에서 사진 추출
+function pickPhoto(it) {
+  if (it.photo) return it.photo;
+  const hay = (it.cat || '') + ' ' + (it.menu || '') + ' ' + (it.name || '');
+  for (const k of Object.keys(CATEGORY_PHOTOS)) {
+    if (hay.includes(k)) return CATEGORY_PHOTOS[k];
+  }
+  return CATEGORY_PHOTOS['한식'];
+}
 
 const PLANS = {
   A: {
@@ -444,7 +509,7 @@ const MARKET_COMPARE = {
     accent: '#16A085',
     url: 'http://place.map.kakao.com/1752209709',
     naver: NAVER('백사장항 수산시장 안면도'),
-    review: 'https://search.naver.com/search.naver?where=view&query=' + encodeURIComponent('백사장항 새우 후기'),
+    review: 'https://search.naver.com/search.naver?where=view&query=' + encodeURIComponent('백사장항 수산시장 후기'),
     rows: {
       '규모':       '소~중형 · 안면도 최대 항구',
       '구성':       '어촌계 직판 + 노점 + 횟집',
@@ -476,4 +541,45 @@ const COMPARE_VERDICT = {
   reason: '동선 효율 + 체크인 정시 + 펜션 5분 거리에 6세 남아 놀거리 풍부',
 };
 
-window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NAVER, KMAP };
+// ═══ 펜션 주변 편의시설 ═══
+// 방울방울키즈펜션 (안면읍 흑석동길 97-30 / 36.59227, 126.33047) 인근 5km 내
+const FACILITY_META = {
+  cvs:    { label:'편의점',     icon:'🏪', color:'#16A085' },
+  mart:   { label:'마트',       icon:'🛒', color:'#1F618D' },
+  gas:    { label:'주유소',     icon:'⛽', color:'#D35400' },
+  pharm:  { label:'약국',       icon:'💊', color:'#8E44AD' },
+  med:    { label:'병원·응급',  icon:'🏥', color:'#C0392B' },
+  bank:   { label:'ATM·은행',   icon:'🏧', color:'#34495E' },
+};
+
+const NEARBY_FACILITIES = [
+  { type:'cvs', name:'CU 안면백사장점', sub:'24시 편의점',
+    addr:'태안군 안면읍 백사장1길 83', lat:36.5832, lon:126.3197,
+    km:1.5, min:4, note:'펜션에서 가장 가까운 편의점 · 새우구이거리 입구' },
+  { type:'cvs', name:'GS25 안면창기점', sub:'24시 편의점',
+    addr:'태안군 안면읍 안면대로 3994', lat:36.5740, lon:126.3290,
+    km:2.2, min:5, note:'안면대로변 · 약국·이마트24 인근' },
+  { type:'mart', name:'안면농협 하나로마트', sub:'식자재·생수·주류',
+    addr:'태안군 안면읍 안면대로 3936', lat:36.5215, lon:126.3415,
+    km:8.0, min:14, note:'안면읍 중심 · BBQ 식자재 가장 다양' },
+  { type:'gas', name:'GS칼텍스 안면주유소', sub:'안면대로 · 셀프',
+    addr:'태안군 안면읍 안면대로 3854', lat:36.5160, lon:126.3430,
+    km:8.5, min:15, note:'안면읍내 · 복귀 출발 전 주유 추천' },
+  { type:'pharm', name:'백사장약국', sub:'평일 09~19시',
+    addr:'태안군 안면읍 백사장1길', lat:36.5840, lon:126.3210,
+    km:1.6, min:4, note:'CU 옆 · 일요일 휴무 가능 · 상비약 챙기세요' },
+  { type:'pharm', name:'안면온누리약국', sub:'평일 09~20시',
+    addr:'태안군 안면읍 안면대로 3950', lat:36.5210, lon:126.3420,
+    km:8.1, min:14, note:'농협하나로 인근 · 토 09~14시' },
+  { type:'med', name:'안면읍 보건지소', sub:'1차 진료 · 평일 09~18시',
+    addr:'태안군 안면읍 안면대로 3920', lat:36.5200, lon:126.3411,
+    km:8.2, min:15, note:'아이 가벼운 진료 · 야간엔 태안의료원' },
+  { type:'med', name:'태안군보건의료원 (응급실)', sub:'24시 응급실',
+    addr:'태안군 태안읍 군청1길 1-25', lat:36.7461, lon:126.2989,
+    km:30.0, min:35, note:'야간·응급은 여기 · 119는 동시 호출' },
+  { type:'bank', name:'농협 안면지점 ATM', sub:'24시 ATM',
+    addr:'태안군 안면읍 안면대로 3936', lat:36.5212, lon:126.3416,
+    km:8.0, min:14, note:'하나로마트 옆 · 현금 인출' },
+];
+
+window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NEARBY_FACILITIES, FACILITY_META, NAVER, KMAP };
