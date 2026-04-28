@@ -235,13 +235,13 @@ function renderCompareBanner() {
   return `
     <a href="#compare" class="banner">
       <div class="banner-tag">COMPARE</div>
-      <div class="banner-title serif">A 안 vs B 안</div>
+      <div class="banner-title serif">Trip A vs Trip B</div>
       <div class="banner-sub">무엇이 더 좋을까?  핵심 8개 항목 비교</div>
       <div class="banner-stats" style="border-top:none; padding-top:0;">
         <div style="display:flex; gap:8px; align-items:center;">
-          <span style="color:var(--accent-a); font-weight:700; font-size:13px;">A 안</span>
+          <span style="color:var(--accent-a); font-weight:700; font-size:13px;">Trip A</span>
           <span style="color:var(--text-low);">vs</span>
-          <span style="color:var(--accent-b); font-weight:700; font-size:13px;">B 안</span>
+          <span style="color:var(--accent-b); font-weight:700; font-size:13px;">Trip B</span>
           <span style="color:var(--text-low); font-size:11px; margin-left:8px;">한눈에 비교</span>
         </div>
       </div>
@@ -370,7 +370,7 @@ function renderPlan(code) {
     <div class="section">
       <div class="section-num">06  NEXT DAY</div>
       <div class="section-title serif">복귀 일정 (5/5 화)</div>
-      <div class="section-sub">A안·B안 공통 — 카페·해장 등 한 페이지에 정리</div>
+      <div class="section-sub">Trip A·Trip B 공통 — 카페·해장 등 한 페이지에 정리</div>
     </div>
     <div style="margin: 0 16px 24px;">
       <a href="#return" class="banner" style="display:block; text-decoration:none;">
@@ -501,8 +501,8 @@ function renderCompareTable(a, b, r) {
   return `
     <div class="compare-head">
       <div>비교 항목</div>
-      <div class="col-a">A 안</div>
-      <div class="col-b">B 안</div>
+      <div class="col-a">Trip A</div>
+      <div class="col-b">Trip B</div>
     </div>
     ${allRows.map(c => `
       <div class="compare-row">
@@ -618,11 +618,48 @@ function renderSelSummary(planCode, r) {
     </div>
     <a href="#compare" class="sel-cta">
       <span>📊</span>
-      <span>A·B 안 비교 페이지로 →</span>
+      <span>Trip A·B 비교 페이지로 →</span>
     </a>
   `;
 }
 window.toggleSelection = toggleSelection;
+
+// 두 좌표 사이 직선거리(km) — Haversine
+function haversineKm(lat1, lon1, lat2, lon2) {
+  if ([lat1,lon1,lat2,lon2].some(v => v == null)) return null;
+  const R = 6371;
+  const toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+// 도로 거리 추정: 직선 × 1.3, 평균 50km/h
+function estimateRoad(km) {
+  if (km == null) return null;
+  const road = km * 1.3;
+  const min = Math.round((road / 50) * 60);
+  return { km: road, min };
+}
+// schedule 항목의 좌표 (선택 반영)
+function getScheduleCoord(planCode, s) {
+  if (s.lat != null && s.lon != null) return [s.lat, s.lon];
+  if (s.isChoice) {
+    const sel = getSelection()[planCode] || {};
+    if (s.target === 'lunch' && sel.lunch) {
+      const it = window.DATA.PLANS[planCode].lunch.find(x => x.tag === sel.lunch);
+      if (it) return [it.lat, it.lon];
+    }
+    if (s.target === 'play') {
+      const playArr = sel.play || [];
+      if (playArr.length) {
+        const it = window.DATA.PLANS[planCode].play.find(x => x.tag === playArr[0]);
+        if (it) return [it.lat, it.lon];
+      }
+    }
+  }
+  return null;
+}
 
 function renderScheduleHTML(planCode) {
   const plan = window.DATA.PLANS[planCode];
@@ -630,7 +667,20 @@ function renderScheduleHTML(planCode) {
   const lunchItem = sel.lunch ? plan.lunch.find(x => x.tag === sel.lunch) : null;
   const playItems = (sel.play || []).map(t => plan.play.find(x => x.tag === t)).filter(Boolean);
 
-  return plan.schedule.map(s => {
+  // 각 row 좌표 미리 계산 (이전 좌표 추적)
+  let prevCoord = null;
+  return plan.schedule.map((s, idx) => {
+    const curCoord = getScheduleCoord(planCode, s);
+    let distHTML = '';
+    if (prevCoord && curCoord) {
+      const km = haversineKm(prevCoord[0], prevCoord[1], curCoord[0], curCoord[1]);
+      const est = estimateRoad(km);
+      if (est && est.km > 0.5) {
+        distHTML = `<span class="schedule-leg">↓ 약 ${est.km.toFixed(0)}km · ${est.min}분</span>`;
+      }
+    }
+    if (curCoord) prevCoord = curCoord;
+
     if (s.isChoice && s.target === 'lunch') {
       const filled = !!lunchItem;
       const place = filled
@@ -638,7 +688,7 @@ function renderScheduleHTML(planCode) {
         : s.place;
       const labelTxt = filled ? '점심' : s.label;
       const cls = filled ? '' : ' choice';
-      return `
+      return `${distHTML}
         <div class="schedule-row choice-row${filled ? ' picked' : ''}" onclick="document.getElementById('${s.target}-section-${planCode}').scrollIntoView({behavior:'smooth', block:'start'})">
           <div class="schedule-time">${s.time}</div>
           <div class="schedule-label${cls}">${labelTxt}</div>
@@ -653,7 +703,7 @@ function renderScheduleHTML(planCode) {
         : s.place;
       const labelTxt = filled ? '놀이' : s.label;
       const cls = filled ? '' : ' choice';
-      return `
+      return `${distHTML}
         <div class="schedule-row choice-row${filled ? ' picked' : ''}" onclick="document.getElementById('${s.target}-section-${planCode}').scrollIntoView({behavior:'smooth', block:'start'})">
           <div class="schedule-time">${s.time}</div>
           <div class="schedule-label${cls}">${labelTxt}</div>
@@ -661,7 +711,7 @@ function renderScheduleHTML(planCode) {
         </div>
       `;
     }
-    return `
+    return `${distHTML}
       <div class="schedule-row">
         <div class="schedule-time">${s.time}</div>
         <div class="schedule-label">${s.label}</div>
@@ -825,8 +875,8 @@ function renderReturn() {
     </a>
 
     <div class="app-footer">
-      <a href="#a" class="card-action" style="display:inline-block; padding:12px 24px; margin-right:8px;">A안 다시 보기</a>
-      <a href="#b" class="card-action primary" style="display:inline-block; padding:12px 24px;">B안 다시 보기</a>
+      <a href="#a" class="card-action" style="display:inline-block; padding:12px 24px; margin-right:8px;">Trip A 다시 보기</a>
+      <a href="#b" class="card-action primary" style="display:inline-block; padding:12px 24px;">Trip B 다시 보기</a>
       <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · DAY 2</div>
     </div>
   `;
@@ -952,19 +1002,19 @@ function renderCompareGrand(a, b, r) {
   return `
     <div class="grand-grid">
       <div class="grand-col ${cheaper==='A'?'winner':''}">
-        <div class="grand-tag" style="color:#C0392B;">A 안</div>
+        <div class="grand-tag" style="color:#C0392B;">Trip A</div>
         <div class="grand-num">${fmt(a.totalCost)}<span>원</span></div>
         <div class="grand-detail">1일차 (이동·점심·놀이)</div>
         <div class="grand-items">
-          ${a.items.length ? a.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">A안에서 선택하세요</div>'}
+          ${a.items.length ? a.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">Trip A에서 선택하세요</div>'}
         </div>
       </div>
       <div class="grand-col ${cheaper==='B'?'winner':''}">
-        <div class="grand-tag" style="color:#16A085;">B 안</div>
+        <div class="grand-tag" style="color:#16A085;">Trip B</div>
         <div class="grand-num">${fmt(b.totalCost)}<span>원</span></div>
         <div class="grand-detail">1일차 (이동·점심·놀이)</div>
         <div class="grand-items">
-          ${b.items.length ? b.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">B안에서 선택하세요</div>'}
+          ${b.items.length ? b.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">Trip B에서 선택하세요</div>'}
         </div>
       </div>
     </div>
@@ -981,11 +1031,11 @@ function renderCompareGrand(a, b, r) {
     </a>
     <div class="grand-totals">
       <div class="grand-total ${cheaper==='A'?'winner':''}">
-        <div>A안 종합</div>
+        <div>Trip A 종합</div>
         <div class="grand-total-num">${fmt(aTotal)}<span>원</span></div>
       </div>
       <div class="grand-total ${cheaper==='B'?'winner':''}">
-        <div>B안 종합</div>
+        <div>Trip B 종합</div>
         <div class="grand-total-num">${fmt(bTotal)}<span>원</span></div>
       </div>
     </div>
@@ -1038,7 +1088,7 @@ function renderCompare() {
 
     <div class="plan-hero">
       <div class="plan-tag">COMPARE</div>
-      <h1 class="plan-title serif">A 안 vs B 안</h1>
+      <h1 class="plan-title serif">Trip A vs Trip B</h1>
       <div class="plan-subtitle">선택 기반 종합 비교 (복귀 포함)</div>
     </div>
 
@@ -1054,14 +1104,14 @@ function renderCompare() {
 
     <div class="compare-verdict">
       <div class="verdict-label">FINAL VERDICT</div>
-      <div class="verdict-winner serif">${D.COMPARE_VERDICT.winner === 'B' ? 'B 안 추천' : 'A 안 추천'}</div>
+      <div class="verdict-winner serif">${D.COMPARE_VERDICT.winner === 'B' ? 'Trip B 추천' : 'Trip A 추천'}</div>
       <div class="verdict-reason">${D.COMPARE_VERDICT.reason}</div>
     </div>
 
     <div class="section" style="text-align:center; padding-top:40px;">
       <div style="display:flex; gap:12px; justify-content:center; max-width:400px; margin:0 auto;">
-        <a href="#a" class="card-action" style="flex:1; padding:14px 0;">A 안 보기</a>
-        <a href="#b" class="card-action primary" style="flex:1; padding:14px 0;">B 안 보기</a>
+        <a href="#a" class="card-action" style="flex:1; padding:14px 0;">Trip A 보기</a>
+        <a href="#b" class="card-action primary" style="flex:1; padding:14px 0;">Trip B 보기</a>
       </div>
     </div>
 

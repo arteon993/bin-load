@@ -1550,6 +1550,17 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ═══ 일정 행 사이 거리 표기 ═══ */
+.schedule-leg {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-low);
+  letter-spacing: 0.05em;
+  padding: 4px 0;
+  margin-left: 90px;
+}
+
 /* ═══ 선택 시 비교 CTA ═══ */
 .sel-cta {
   display: flex; align-items: center; justify-content: center; gap: 8px;
