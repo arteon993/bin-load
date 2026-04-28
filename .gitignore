@@ -1,0 +1,8 @@
+.claude/
+data/coords.json
+data/extras.json
+*.log
+.DS_Store
+node_modules/
+.env
+.vscode/

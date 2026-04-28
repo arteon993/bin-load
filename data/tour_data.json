@@ -1,0 +1,82 @@
+{
+  "꽃지해수욕장": {
+    "contentid": "126695",
+    "title": "꽃지해수욕장",
+    "addr": "충청남도 태안군 안면읍 승언리",
+    "tel": "",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/23/3498123_image2_1.jpg",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/23/3498123_image3_1.jpg",
+    "lat": 36.5013661578,
+    "lon": 126.3346639477
+  },
+  "안면도자연휴양림": {
+    "contentid": "125448",
+    "title": "안면도자연휴양림",
+    "addr": "충청남도 태안군 안면읍 안면대로 3195-6",
+    "tel": "",
+    "img": "https://tong.visitkorea.or.kr/cms/resource/40/4057440_image2_1.jpg",
+    "img_thumb": "https://tong.visitkorea.or.kr/cms/resource/40/4057440_image3_1.jpg",
+    "lat": 36.4966991698447,
+    "lon": 126.358827576291
+  },
+  "백사장항": {
+    "contentid": "2407331",
+    "title": "백사장항",
+    "addr": "충청남도 태안군 안면읍 창기리",
+    "tel": "",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/61/3340561_image2_1.jpg",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/61/3340561_image3_1.jpg",
+    "lat": 36.585647798,
+    "lon": 126.3155106953
+  },
+  "방포항": {
+    "contentid": "131813",
+    "title": "태안 방포항",
+    "addr": "충청남도 태안군 안면읍 방포항길 94",
+    "tel": "041-670-2691",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/84/3034584_image2_1.jpg",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/84/3034584_image3_1.jpg",
+    "lat": 36.5045935537,
+    "lon": 126.3340361422
+  },
+  "오마이갤러리": {
+    "contentid": "2639878",
+    "title": "오마이갤러리",
+    "addr": "충청남도 태안군 안면읍 안면대로 3171-6",
+    "tel": "",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/66/3336266_image2_1.jpg",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/66/3336266_image3_1.jpg",
+    "lat": 36.4987474112,
+    "lon": 126.3579563576
+  },
+  "대천해수욕장": {
+    "contentid": "127866",
+    "title": "대천해수욕장",
+    "addr": "충청남도 보령시 머드로 123",
+    "tel": "041-933-7051",
+    "img": "https://tong.visitkorea.or.kr/cms/resource/66/3513866_image2_1.jpg",
+    "img_thumb": "https://tong.visitkorea.or.kr/cms/resource/66/3513866_image3_1.jpg",
+    "lat": 36.3103,
+    "lon": 126.5136
+  },
+  "보령석탄박물관": {
+    "contentid": "2470406",
+    "title": "보령석탄박물관",
+    "addr": "충청남도 보령시 성주면 성주산로 508",
+    "tel": "",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/57/3560557_image2_1.jpg",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/57/3560557_image3_1.jpg",
+    "lat": 36.326097284,
+    "lon": 126.6527121109
+  },
+  "대천항수산시장": {
+    "contentid": "2750901",
+    "title": "대천항수산시장",
+    "addr": "충청남도 보령시 대천항로 334",
+    "tel": "",
+    "img": "http://tong.visitkorea.or.kr/cms/resource/74/2751174_image2_1.png",
+    "img_thumb": "http://tong.visitkorea.or.kr/cms/resource/74/2751174_image3_1.png",
+    "lat": 36.3265031054,
+    "lon": 126.5088667017
+  }
+}

@@ -1,0 +1,1086 @@
+// ═══ 빈슐랭 로드 — App ═══
+const KAKAO_JS_KEY = 'fe986b58518730a223c0fc7d057e348d';
+
+// 카카오 SDK 초기화
+function initKakao() {
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init(KAKAO_JS_KEY);
+  }
+}
+
+// ═══ D-Day ═══
+function calcDday() {
+  const target = new Date(window.DATA.META.startDateTime || window.DATA.META.startDate);
+  const now = new Date();
+  const diffMs = target - now;
+  if (diffMs > 0) {
+    // 출발 전: D-X일 X시간 X분 X초
+    const days = Math.floor(diffMs / 86400000);
+    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    const secs = Math.floor((diffMs % 60000) / 1000);
+    return `D-${days}일 ${hours}시 ${mins}분 ${secs}초`;
+  }
+  // 출발 후: 경과 시간 (초 단위)
+  const after = Math.abs(diffMs);
+  const days = Math.floor(after / 86400000);
+  const hours = Math.floor((after % 86400000) / 3600000);
+  const mins = Math.floor((after % 3600000) / 60000);
+  const secs = Math.floor((after % 60000) / 1000);
+  if (days > 0) return `D+${days}일 ${hours}시 ${mins}분 ${secs}초`;
+  return `D-DAY ${hours}시 ${mins}분 ${secs}초 경과`;
+}
+function startDdayCountdown() {
+  const update = () => {
+    const txt = calcDday();
+    document.querySelectorAll('.dday-text').forEach(el => el.textContent = txt);
+  };
+  update();
+  setInterval(update, 1000); // 1초마다
+}
+
+// ═══ 라우팅 ═══
+const VIEWS = ['intro', 'menu', 'a', 'b', 'compare', 'return'];
+let currentView = 'intro';
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const target = document.querySelector(`.view-${name}`);
+  if (target) target.classList.add('active');
+  currentView = name;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+
+  // 메뉴/플랜 뷰에서는 음악 시작 (사용자가 ENTER 누른 후)
+  if (name !== 'intro' && bgmReady) {
+    playBgm();
+  }
+  // 플랜 뷰는 지도 초기화 + 선택 UI 동기화
+  if (name === 'a' || name === 'b') {
+    const code = name.toUpperCase();
+    setTimeout(() => { initPlanMaps(code); updateSelectionUI(code); }, 100);
+  }
+  if (name === 'compare') {
+    setTimeout(() => { updateCompareUI(); updateReturnUI(); }, 100);
+  }
+  if (name === 'return') {
+    setTimeout(() => updateReturnUI(), 100);
+  }
+}
+
+function router() {
+  const hash = location.hash.replace('#', '') || 'intro';
+  if (VIEWS.includes(hash)) showView(hash);
+}
+
+// ═══ 음악 ═══
+let bgm = null;
+let bgmReady = false;
+let isMuted = false;
+
+function setupBgm() {
+  bgm = document.getElementById('bgm');
+  if (!bgm) return;
+  bgm.volume = 0.4;
+}
+
+function playBgm() {
+  if (!bgm || isMuted) return;
+  bgm.play().catch(e => {/* iOS 자동재생 차단 시 조용히 무시 */});
+}
+
+function toggleMute() {
+  if (!bgm) return;
+  isMuted = !isMuted;
+  bgm.muted = isMuted;
+  if (!isMuted) bgm.play().catch(()=>{});
+  document.querySelectorAll('.music-toggle').forEach(b => {
+    b.textContent = isMuted ? '🔇' : '🔊';
+  });
+}
+
+// ═══ 인트로 영상 ═══
+function setupIntro() {
+  const video = document.getElementById('intro-video');
+  const enterBtn = document.getElementById('intro-enter');
+  const skipBtn = document.getElementById('intro-skip');
+  const introView = document.querySelector('.view-intro');
+
+  // ENTER 누르면 영상 시작 (영상 자체 음악 ON, BGM은 영상 끝난 후)
+  function startIntro() {
+    introView.classList.add('playing');
+    if (video) {
+      video.muted = false;       // ★ 영상 자체 음악 ON
+      video.volume = 1.0;
+      video.currentTime = 0;
+      video.play().catch(()=>{});
+      video.addEventListener('ended', endIntro, { once: true });
+    } else {
+      setTimeout(endIntro, 5000);
+    }
+  }
+
+  function endIntro() {
+    if (video) video.muted = true;  // 영상 정지/메뉴 이동 시 영상 소리 OFF
+    bgmReady = true;
+    playBgm();                       // 메뉴부터 BGM 시작
+    location.hash = 'menu';
+  }
+
+  if (enterBtn) enterBtn.addEventListener('click', startIntro);
+  if (skipBtn) skipBtn.addEventListener('click', endIntro);
+}
+
+// ═══ 메뉴 화면 ═══
+function renderMenu() {
+  const root = document.querySelector('.view-menu');
+  if (!root) return;
+  const D = window.DATA;
+  const dday = calcDday();
+
+  root.innerHTML = `
+    <div class="menu-hero">
+      <div class="menu-brand latin">BIN MICHELIN ROAD</div>
+      <h1 class="menu-title serif">${D.META.title}</h1>
+      <div class="menu-divider"></div>
+      <div class="menu-sub">${D.META.subtitle}  ·  ${D.META.startDate.replace(/-/g, '. ')} ~ ${D.META.endDate.slice(-2)}</div>
+      <div class="menu-dday dday-text">${dday}</div>
+    </div>
+
+    <div class="menu-banners">
+      ${renderBanner('A', D.PLANS.A, false)}
+      ${renderBanner('B', D.PLANS.B, true)}
+      ${renderCompareBanner()}
+    </div>
+
+    <div class="menu-footer">
+      <div class="pension-mini serif">${D.META.pension.name}</div>
+      <div>${D.META.pension.addr}  ·  체크인 ${D.META.pension.checkin}</div>
+      <div style="margin-top:24px;">
+        <button class="share-btn" onclick="shareToKakao()">
+          <span>💬</span> 카카오톡으로 공유
+        </button>
+      </div>
+      <div style="margin-top:20px; font-size:10px;">
+        TRAVEL  ·  PLAN  ·  ${D.META.startDate.split('-')[0]}
+      </div>
+    </div>
+  `;
+}
+
+function renderBanner(code, plan, recommend) {
+  return `
+    <a href="#${code.toLowerCase()}" class="banner">
+      ${recommend ? '<div class="banner-recommend">★ 추천</div>' : ''}
+      <div class="banner-tag">PLAN ${code}</div>
+      <div class="banner-title serif">${plan.title}</div>
+      <div class="banner-sub">${plan.subtitle}</div>
+      <div class="banner-stats">
+        <div class="banner-stat">
+          <div class="banner-stat-num">${plan.kpi.km}<span style="font-size:14px;color:var(--text-mid);">km</span></div>
+          <div class="banner-stat-label">거리</div>
+        </div>
+        <div class="banner-stat">
+          <div class="banner-stat-num">${plan.kpi.min}<span style="font-size:14px;color:var(--text-mid);">분</span></div>
+          <div class="banner-stat-label">시간</div>
+        </div>
+        <div class="banner-stat">
+          <div class="banner-stat-num">${plan.kpi.toll === 0 ? '0' : plan.kpi.toll.toLocaleString()}<span style="font-size:14px;color:var(--text-mid);">원</span></div>
+          <div class="banner-stat-label">통행료</div>
+        </div>
+      </div>
+      <div class="banner-arrow">→</div>
+    </a>
+  `;
+}
+
+function renderCompareBanner() {
+  return `
+    <a href="#compare" class="banner">
+      <div class="banner-tag">COMPARE</div>
+      <div class="banner-title serif">A 안 vs B 안</div>
+      <div class="banner-sub">무엇이 더 좋을까?  핵심 8개 항목 비교</div>
+      <div class="banner-stats" style="border-top:none; padding-top:0;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span style="color:var(--accent-a); font-weight:700; font-size:13px;">A 안</span>
+          <span style="color:var(--text-low);">vs</span>
+          <span style="color:var(--accent-b); font-weight:700; font-size:13px;">B 안</span>
+          <span style="color:var(--text-low); font-size:11px; margin-left:8px;">한눈에 비교</span>
+        </div>
+      </div>
+      <div class="banner-arrow">→</div>
+    </a>
+  `;
+}
+
+// ═══ 플랜 페이지 (A/B 공통) ═══
+function renderPlan(code) {
+  const view = document.querySelector(`.view-${code.toLowerCase()}`);
+  if (!view) return;
+  const plan = window.DATA.PLANS[code];
+  const D = window.DATA;
+
+  view.innerHTML = `
+    <div class="app-header">
+      <button class="back-btn" onclick="location.hash='menu'">←</button>
+      <div class="header-title latin">PLAN ${code}</div>
+      <div class="header-actions">
+        <button class="icon-btn music-toggle" onclick="toggleMute()">🔊</button>
+      </div>
+    </div>
+
+    <div class="plan-hero" style="border-bottom-color:${plan.accent};">
+      <div class="plan-tag">PLAN ${code}</div>
+      <h1 class="plan-title serif">${plan.title}</h1>
+      <div class="plan-subtitle">${plan.subtitle}</div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <div><span class="kpi-num">${plan.kpi.km}</span><span class="kpi-unit">km</span></div>
+        <div class="kpi-label">DISTANCE</div>
+      </div>
+      <div class="kpi-box">
+        <div><span class="kpi-num">${plan.kpi.min}</span><span class="kpi-unit">분</span></div>
+        <div class="kpi-label">TIME</div>
+      </div>
+      <div class="kpi-box">
+        <div><span class="kpi-num">${plan.kpi.toll.toLocaleString()}</span><span class="kpi-unit">원</span></div>
+        <div class="kpi-label">TOLL</div>
+      </div>
+      <div class="kpi-box">
+        <div><span class="kpi-num" style="font-size:22px;">${plan.kpi.arrive.split(' ')[0]}</span></div>
+        <div class="kpi-label">CHECK-IN</div>
+      </div>
+    </div>
+
+    <!-- 내 선택 합계 -->
+    <div class="section" style="padding-bottom:0;">
+      <div class="section-num">★  MY PICK</div>
+      <div class="section-title serif">내 선택 합계</div>
+      <div class="section-sub">아래 카드에서 점심 1개 + 놀거리 1~2개 "선택" 누르면 자동 계산</div>
+    </div>
+    <div class="sel-summary-box" id="sel-summary-${code}">
+      <div class="sel-empty">
+        <div class="sel-empty-title">선택한 옵션이 없어요</div>
+        <div class="sel-empty-sub">점심 1개 + 놀거리 1~2개를 골라보세요 ↓</div>
+      </div>
+    </div>
+
+    <!-- 펜션 정보 -->
+    <div class="pension-card">
+      <div class="pension-label">YOUR STAY</div>
+      <div class="pension-name serif">${D.META.pension.name}</div>
+      <div class="pension-addr">${D.META.pension.addr}</div>
+      <div class="pension-checkin">CHECK-IN ${D.META.pension.checkin}</div>
+    </div>
+
+    <!-- 광역 지도 -->
+    <div class="section">
+      <div class="section-num">01  ROUTE</div>
+      <div class="section-title serif">광역 동선</div>
+      <div class="section-sub">아산 → 안면도 펜션 (지도 클릭하면 카카오맵 열림)</div>
+    </div>
+    <div class="map-box" id="map-overview-${code}"></div>
+
+    <!-- 일정 -->
+    <div class="section">
+      <div class="section-num">02  SCHEDULE</div>
+      <div class="section-title serif">하루 일정</div>
+      <div class="section-sub">15시 펜션 체크인이 메인</div>
+    </div>
+    <div class="schedule-list" id="schedule-${code}">
+      ${renderScheduleHTML(code)}
+    </div>
+
+    <!-- 점심 카드 -->
+    <div class="section" id="lunch-section-${code}">
+      <div class="section-num">03  LUNCH</div>
+      <div class="section-title serif">점심 옵션 (${plan.lunch.length})</div>
+      <div class="section-sub">← 좌우로 슬라이드 · 식당명 클릭 = 네이버 리뷰</div>
+    </div>
+    <div class="cards-wrap">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)" aria-label="이전">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)" aria-label="다음">›</button>
+      <div class="cards-scroll">
+        ${plan.lunch.map(it => renderCard(it, code, 'lunch')).join('')}
+      </div>
+    </div>
+
+    <!-- 놀거리 카드 -->
+    <div class="section" id="play-section-${code}">
+      <div class="section-num">04  PLAY</div>
+      <div class="section-title serif">놀거리 (${plan.play.length})</div>
+      <div class="section-sub">6세 남아 위주 · 슬라이드해서 골라주세요</div>
+    </div>
+    <div class="cards-wrap">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)" aria-label="이전">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)" aria-label="다음">›</button>
+      <div class="cards-scroll">
+        ${plan.play.map(it => renderCard(it, code, 'play')).join('')}
+      </div>
+    </div>
+
+    <!-- 수산시장 비교 -->
+    <div class="section">
+      <div class="section-num">05  MARKET</div>
+      <div class="section-title serif">수산시장 비교</div>
+      <div class="section-sub">대천항 vs 백사장항 · 한눈에 보기</div>
+    </div>
+    ${renderMarketCompare(code)}
+
+    <!-- 복귀 (5/5) — 별도 페이지 링크 -->
+    <div class="section">
+      <div class="section-num">06  NEXT DAY</div>
+      <div class="section-title serif">복귀 일정 (5/5 화)</div>
+      <div class="section-sub">A안·B안 공통 — 카페·해장 등 한 페이지에 정리</div>
+    </div>
+    <div style="margin: 0 16px 24px;">
+      <a href="#return" class="banner" style="display:block; text-decoration:none;">
+        <div class="banner-tag">5/5 RETURN</div>
+        <div class="banner-title serif">복귀 일정 보기</div>
+        <div class="banner-sub">체크아웃 → 카페 → 길목 해장 → 집</div>
+        <div class="banner-arrow">→</div>
+      </a>
+    </div>
+
+    <!-- 비용 -->
+    <div class="section">
+      <div class="section-num">07  COST</div>
+      <div class="section-title serif">예상 비용</div>
+      <div class="section-sub">가성비 조합 · 어른 4 + 6세 아이 2</div>
+    </div>
+    <div class="cost-box">
+      ${plan.cost.rows.map(r => `
+        <div class="cost-row">
+          <div class="cost-cat">${r.cat}</div>
+          <div class="cost-name">${r.name}</div>
+          <div class="cost-price">${r.price}</div>
+        </div>
+      `).join('')}
+      <div class="cost-total">
+        <div class="cost-total-label">합계 (1일차)</div>
+        <div class="cost-total-amount">${plan.cost.total}</div>
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <button class="share-btn" onclick="shareToKakao()">
+        <span>💬</span> 카카오톡으로 공유
+      </button>
+      <div class="footer-meta">BIN MICHELIN ROAD  ·  ${D.META.startDate.split('-')[0]}</div>
+    </div>
+  `;
+}
+
+// ═══ 선택 시스템 (점심 1개 + 놀거리 1~2개) ═══
+const SEL_KEY = 'binload_selection_v1';
+function getSelection() {
+  try { return JSON.parse(localStorage.getItem(SEL_KEY) || '{}'); }
+  catch { return {}; }
+}
+function setSelection(s) {
+  localStorage.setItem(SEL_KEY, JSON.stringify(s));
+}
+function toggleSelection(planCode, kind, tag) {
+  const sel = getSelection();
+  if (planCode === 'R') {
+    // 복귀: 카페 1개 + 해장 1개 (라디오)
+    if (!sel.R) sel.R = { cafe: null, haejang: null };
+    sel.R[kind] = sel.R[kind] === tag ? null : tag;
+    setSelection(sel);
+    updateReturnUI();
+    updateCompareUI();
+    return;
+  }
+  if (!sel[planCode]) sel[planCode] = { lunch: null, play: [] };
+  if (kind === 'lunch') {
+    sel[planCode].lunch = sel[planCode].lunch === tag ? null : tag;
+  } else {
+    const arr = sel[planCode].play || [];
+    if (arr.includes(tag)) {
+      sel[planCode].play = arr.filter(t => t !== tag);
+    } else if (arr.length < 2) {
+      sel[planCode].play = [...arr, tag];
+    } else {
+      sel[planCode].play = [arr[1], tag];
+    }
+  }
+  setSelection(sel);
+  updateSelectionUI(planCode);
+  updateCompareUI();
+}
+function updateReturnUI() {
+  const sel = getSelection().R || {};
+  document.querySelectorAll(`[data-card-plan="R"]`).forEach(c => {
+    const tag = c.dataset.cardTag;
+    const kind = c.dataset.cardKind;
+    c.classList.toggle('card-selected', sel[kind] === tag);
+  });
+}
+function calcReturn() {
+  const sel = getSelection().R || {};
+  const R = window.DATA.RETURN_DAY;
+  let cost = 0, items = [];
+  if (sel.cafe) {
+    const it = R.cafes.find(x => x.tag === sel.cafe);
+    if (it) { cost += parsePrice(it.price); items.push(it); }
+  }
+  if (sel.haejang) {
+    const it = R.haejang.find(x => x.tag === sel.haejang);
+    if (it) { cost += parsePrice(it.price); items.push(it); }
+  }
+  return { items, cost, sel };
+}
+function updateCompareUI() {
+  const box = document.getElementById('compare-grand');
+  if (!box) return;
+  const a = calcSelection('A');
+  const b = calcSelection('B');
+  const r = calcReturn();
+  box.innerHTML = renderCompareGrand(a, b, r);
+}
+function parsePrice(p) {
+  if (!p || p.includes('무료')) return 0;
+  const m = p.match(/([\d.]+)\s*만/);
+  if (m) return parseFloat(m[1]) * 10000;
+  const m2 = p.match(/([\d,]+)\s*원/);
+  if (m2) return parseInt(m2[1].replace(/,/g,''));
+  return 0;
+}
+function calcSelection(planCode) {
+  const sel = getSelection()[planCode] || { lunch: null, play: [] };
+  const plan = window.DATA.PLANS[planCode];
+  const baseKm = plan.kpi.km, baseMn = plan.kpi.min, baseToll = plan.kpi.toll;
+  let extraKm = 0, extraMn = 0, totalCost = 0;
+  const items = [];
+  if (sel.lunch) {
+    const it = plan.lunch.find(x => x.tag === sel.lunch);
+    if (it) {
+      extraKm += it.km * 2;  // 펜션 왕복
+      extraMn += it.min * 2;
+      totalCost += parsePrice(it.price);
+      items.push(it);
+    }
+  }
+  (sel.play || []).forEach(tag => {
+    const it = plan.play.find(x => x.tag === tag);
+    if (it) {
+      extraKm += it.km * 2;
+      extraMn += it.min * 2;
+      totalCost += parsePrice(it.price);
+      items.push(it);
+    }
+  });
+  // 주유비 추정 (왕복 km · 13km/L · 1700원)
+  const fuel = Math.round(((baseKm * 2 + extraKm) / 13) * 1700);
+  return {
+    sel, items,
+    totalKm: baseKm * 2 + extraKm,
+    totalMn: baseMn * 2 + extraMn,
+    totalCost: totalCost + fuel + baseToll * 2,
+    fuel, toll: baseToll * 2,
+  };
+}
+function updateSelectionUI(planCode) {
+  const r = calcSelection(planCode);
+  const box = document.getElementById(`sel-summary-${planCode}`);
+  if (box) {
+    box.innerHTML = renderSelSummary(planCode, r);
+  }
+  // 일정 다시 렌더 (선택 반영)
+  const sched = document.getElementById(`schedule-${planCode}`);
+  if (sched) {
+    sched.innerHTML = renderScheduleHTML(planCode);
+  }
+  // 카드 selected 상태 업데이트
+  document.querySelectorAll(`[data-card-plan="${planCode}"]`).forEach(c => {
+    const tag = c.dataset.cardTag;
+    const kind = c.dataset.cardKind;
+    const sel = r.sel;
+    const isSel = (kind === 'lunch' && sel.lunch === tag) ||
+                  (kind === 'play' && (sel.play || []).includes(tag));
+    c.classList.toggle('card-selected', isSel);
+  });
+}
+function renderSelSummary(planCode, r) {
+  const plan = window.DATA.PLANS[planCode];
+  const hasItems = r.items.length > 0;
+  if (!hasItems) {
+    return `
+      <div class="sel-empty">
+        <div class="sel-empty-title">선택한 옵션이 없어요</div>
+        <div class="sel-empty-sub">점심 1개 + 놀거리 1~2개를 골라보세요 ↓</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="sel-stats">
+      <div class="sel-stat">
+        <div class="sel-stat-num">${r.totalKm.toFixed(0)}<span>km</span></div>
+        <div class="sel-stat-label">총 이동거리</div>
+      </div>
+      <div class="sel-stat">
+        <div class="sel-stat-num">${r.totalMn}<span>분</span></div>
+        <div class="sel-stat-label">예상 시간</div>
+      </div>
+      <div class="sel-stat">
+        <div class="sel-stat-num">${(r.totalCost/10000).toFixed(1)}<span>만</span></div>
+        <div class="sel-stat-label">예상 총비용</div>
+      </div>
+    </div>
+    <div class="sel-items">
+      ${r.items.map(it => `
+        <div class="sel-item" style="border-left-color:${it.tone};">
+          <span class="sel-item-tag">${it.tag}</span>
+          <span class="sel-item-name">${it.name}</span>
+          <span class="sel-item-price">${it.price}</span>
+        </div>
+      `).join('')}
+      <div class="sel-item sel-fuel">
+        <span class="sel-item-tag">⛽</span>
+        <span class="sel-item-name">주유 (${r.totalKm.toFixed(0)}km · 13km/L) + 톨비 ${r.toll.toLocaleString()}원</span>
+        <span class="sel-item-price">${((r.fuel + r.toll)/10000).toFixed(1)}만원</span>
+      </div>
+    </div>
+  `;
+}
+window.toggleSelection = toggleSelection;
+
+function renderScheduleHTML(planCode) {
+  const plan = window.DATA.PLANS[planCode];
+  const sel = getSelection()[planCode] || { lunch: null, play: [] };
+  const lunchItem = sel.lunch ? plan.lunch.find(x => x.tag === sel.lunch) : null;
+  const playItems = (sel.play || []).map(t => plan.play.find(x => x.tag === t)).filter(Boolean);
+
+  return plan.schedule.map(s => {
+    if (s.isChoice && s.target === 'lunch') {
+      const filled = !!lunchItem;
+      const place = filled
+        ? `<span class="schedule-pick">✓ ${lunchItem.tag}</span> ${lunchItem.name}`
+        : s.place;
+      const labelTxt = filled ? '점심' : s.label;
+      const cls = filled ? '' : ' choice';
+      return `
+        <div class="schedule-row choice-row${filled ? ' picked' : ''}" onclick="document.getElementById('${s.target}-section-${planCode}').scrollIntoView({behavior:'smooth', block:'start'})">
+          <div class="schedule-time">${s.time}</div>
+          <div class="schedule-label${cls}">${labelTxt}</div>
+          <div class="schedule-place">${place}</div>
+        </div>
+      `;
+    }
+    if (s.isChoice && s.target === 'play') {
+      const filled = playItems.length > 0;
+      const place = filled
+        ? playItems.map(p => `<span class="schedule-pick">✓ ${p.tag}</span> ${p.name}`).join(' &nbsp; ')
+        : s.place;
+      const labelTxt = filled ? '놀이' : s.label;
+      const cls = filled ? '' : ' choice';
+      return `
+        <div class="schedule-row choice-row${filled ? ' picked' : ''}" onclick="document.getElementById('${s.target}-section-${planCode}').scrollIntoView({behavior:'smooth', block:'start'})">
+          <div class="schedule-time">${s.time}</div>
+          <div class="schedule-label${cls}">${labelTxt}</div>
+          <div class="schedule-place">${place}</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="schedule-row">
+        <div class="schedule-time">${s.time}</div>
+        <div class="schedule-label">${s.label}</div>
+        <div class="schedule-place">${s.place}</div>
+      </div>
+    `;
+  }).join('');
+}
+window.scrollCards = function(btn, dir) {
+  const wrap = btn.closest('.cards-wrap');
+  const scroll = wrap.querySelector('.cards-scroll');
+  const card = scroll.querySelector('.card');
+  const cardW = card?.getBoundingClientRect().width || 300;
+  scroll.scrollBy({ left: dir * (cardW + 16), behavior: 'smooth' });
+};
+
+// ═══ 카드 ═══
+function renderCard(it, planCode, kind) {
+  const photoStyle = it.photo
+    ? `background-image:url('${it.photo}'); background-color:${it.tone};`
+    : `background-color:${it.tone};`;
+  const fallback = it.photo ? '' : `<div class="card-photo-fallback">${it.name}</div>`;
+
+  const naverUrl = it.naver || window.DATA.NAVER(it.name);
+  const kmapUrl = it.url || window.DATA.KMAP(it.name);
+  const selectable = planCode && kind && (kind === 'lunch' || kind === 'play');
+
+  return `
+    <div class="card" ${selectable ? `data-card-plan="${planCode}" data-card-kind="${kind}" data-card-tag="${it.tag}"` : ''}>
+      <div class="card-photo" style="${photoStyle}">
+        ${fallback}
+        <div class="card-tag">${it.tag}</div>
+        <div class="card-stars">${'★'.repeat(it.star)}${'☆'.repeat(5-it.star)}</div>
+      </div>
+      <div class="card-body">
+        ${it.cat ? `<div class="card-cat" style="background:${it.catColor || '#444'};">${it.cat}</div>` : ''}
+        <a href="${naverUrl}" target="_blank" rel="noopener" class="card-name">${it.name}</a>
+        <div class="card-addr">${it.addr}</div>
+
+        <div class="card-stats">
+          <div class="stat-box">
+            <div class="stat-tiny">숙소 기준</div>
+            <div class="stat-num">${it.km}</div>
+            <div class="stat-label">KM</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-tiny">차로</div>
+            <div class="stat-num accent">${it.min}</div>
+            <div class="stat-label">분</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-tiny">예상</div>
+            <div class="stat-num price-${it.class}">${it.price}</div>
+            <div class="stat-label">비용</div>
+          </div>
+        </div>
+
+        <div class="card-info">
+          <div class="info-row">
+            <span class="info-label menu">메뉴</span>
+            <span class="info-text">${it.menu}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label review">평판</span>
+            <span class="info-text">${it.review}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label kid">6세</span>
+            <span class="info-text">${it.kid}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <a href="${naverUrl}" target="_blank" rel="noopener" class="card-action">네이버 리뷰</a>
+          <a href="${kmapUrl}" target="_blank" rel="noopener" class="card-action">카카오맵</a>
+          ${selectable ? `
+            <button onclick="toggleSelection('${planCode}','${kind}','${it.tag}')" class="card-action primary card-pick">선택</button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══ 복귀 페이지 (별도 뷰) ═══
+function renderReturn() {
+  const view = document.querySelector('.view-return');
+  if (!view) return;
+  const R = window.DATA.RETURN_DAY;
+
+  view.innerHTML = `
+    <div class="app-header">
+      <button class="back-btn" onclick="location.hash='menu'">←</button>
+      <div class="header-title latin">RETURN · 5/5</div>
+      <div class="header-actions">
+        <button class="icon-btn music-toggle" onclick="toggleMute()">🔊</button>
+      </div>
+    </div>
+
+    <div class="plan-hero">
+      <div class="plan-tag">DAY 2 · 5월 5일 (화)</div>
+      <h1 class="plan-title serif">${R.title}</h1>
+      <div class="plan-subtitle">${R.sub}</div>
+    </div>
+
+    <!-- Day2 일정 -->
+    <div class="section">
+      <div class="section-num">01  SCHEDULE</div>
+      <div class="section-title serif">하루 흐름</div>
+      <div class="section-sub">아침 천천히 → 카페 → 해장 → 집</div>
+    </div>
+    <div class="schedule-list">
+      ${R.schedule.map(s => s.isChoice ? `
+        <div class="schedule-row choice-row" onclick="document.getElementById('return-${s.target}-section').scrollIntoView({behavior:'smooth', block:'start'})">
+          <div class="schedule-time">${s.time}</div>
+          <div class="schedule-label choice">${s.label}</div>
+          <div class="schedule-place">${s.place}</div>
+        </div>
+      ` : `
+        <div class="schedule-row">
+          <div class="schedule-time">${s.time}</div>
+          <div class="schedule-label">${s.label}</div>
+          <div class="schedule-place">${s.place}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- 카페 -->
+    <div class="section" id="return-cafe-section">
+      <div class="section-num">02  CAFE</div>
+      <div class="section-title serif">모닝 카페 (${R.cafes.length})</div>
+      <div class="section-sub">펜션 인근 · 오션뷰 · 가성비</div>
+    </div>
+    <div class="cards-wrap">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)" aria-label="이전">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)" aria-label="다음">›</button>
+      <div class="cards-scroll">
+        ${R.cafes.map(it => renderCard(it, 'R', 'cafe')).join('')}
+      </div>
+    </div>
+
+    <!-- 해장 -->
+    <div class="section" id="return-haejang-section">
+      <div class="section-num">03  HAEJANG</div>
+      <div class="section-title serif">길목 해장국 (${R.haejang.length})</div>
+      <div class="section-sub">집 가는 길 · 아이도 OK</div>
+    </div>
+    <div class="cards-wrap">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)" aria-label="이전">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)" aria-label="다음">›</button>
+      <div class="cards-scroll">
+        ${R.haejang.map(it => renderCard(it, 'R', 'haejang')).join('')}
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <a href="#a" class="card-action" style="display:inline-block; padding:12px 24px; margin-right:8px;">A안 다시 보기</a>
+      <a href="#b" class="card-action primary" style="display:inline-block; padding:12px 24px;">B안 다시 보기</a>
+      <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · DAY 2</div>
+    </div>
+  `;
+}
+
+// ═══ 수산시장 비교 ═══
+function renderMarketCompare(planCode) {
+  const M = window.DATA.MARKET_COMPARE;
+  const isCurrentA = planCode === 'A';
+  const cards = [
+    { ...M.a, current: isCurrentA },
+    { ...M.b, current: !isCurrentA },
+  ];
+  const labels = Object.keys(M.a.rows);
+
+  return `
+    <div class="market-wrap">
+      <div class="market-grid">
+        ${cards.map(c => `
+          <div class="market-card ${c.current ? 'current' : ''}" style="border-color:${c.accent};">
+            ${c.current ? '<div class="market-now">현재 안</div>' : ''}
+            <div class="market-photo" style="background-image:url('${c.photo}'); background-color:${c.tone};"></div>
+            <div class="market-body">
+              <div class="market-sub" style="color:${c.accent};">${c.sub}</div>
+              <a href="${c.naver}" target="_blank" rel="noopener" class="market-name">${c.name} ↗</a>
+              <div class="market-addr">${c.addr}</div>
+              <div class="market-card-actions">
+                <a href="${c.url}" target="_blank" rel="noopener" class="mini-action">
+                  <span class="mini-icon">📍</span> 카카오맵
+                </a>
+                <a href="${c.review}" target="_blank" rel="noopener" class="mini-action">
+                  <span class="mini-icon">📝</span> 후기 보기
+                </a>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="market-table">
+        ${labels.map(label => `
+          <div class="market-row">
+            <div class="market-label">${label}</div>
+            <div class="market-cell" ${cards[0].current ? 'data-current="1"' : ''}>${cards[0].rows[label]}</div>
+            <div class="market-cell" ${cards[1].current ? 'data-current="1"' : ''}>${cards[1].rows[label]}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ═══ 비교 페이지 ═══
+function renderCompareGrand(a, b, r) {
+  const aTotal = a.totalCost + r.cost;
+  const bTotal = b.totalCost + r.cost;
+  const cheaper = aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : '=');
+  const fmt = n => (n/10000).toFixed(1) + '만';
+  return `
+    <div class="grand-grid">
+      <div class="grand-col ${cheaper==='A'?'winner':''}">
+        <div class="grand-tag" style="color:#C0392B;">A 안</div>
+        <div class="grand-num">${fmt(a.totalCost)}<span>원</span></div>
+        <div class="grand-detail">1일차 (이동·점심·놀이)</div>
+        <div class="grand-items">
+          ${a.items.length ? a.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">A안에서 선택하세요</div>'}
+        </div>
+      </div>
+      <div class="grand-col ${cheaper==='B'?'winner':''}">
+        <div class="grand-tag" style="color:#16A085;">B 안</div>
+        <div class="grand-num">${fmt(b.totalCost)}<span>원</span></div>
+        <div class="grand-detail">1일차 (이동·점심·놀이)</div>
+        <div class="grand-items">
+          ${b.items.length ? b.items.map(it=>`<div>${it.tag} ${it.name}</div>`).join('') : '<div class="grand-empty">B안에서 선택하세요</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="grand-return">
+      <div class="grand-return-label">＋ 복귀 (5/5 공통) <span style="color:#666;">${r.items.length?'':'아래에서 선택'}</span></div>
+      <div class="grand-return-items">
+        ${r.items.length ? r.items.map(it=>`<div><span class="grand-pill">${it.tag}</span> ${it.name} <strong>${it.price}</strong></div>`).join('') : '<div class="grand-empty">카페 + 해장 선택 시 합산</div>'}
+      </div>
+    </div>
+    <div class="grand-totals">
+      <div class="grand-total ${cheaper==='A'?'winner':''}">
+        <div>A안 종합</div>
+        <div class="grand-total-num">${fmt(aTotal)}<span>원</span></div>
+      </div>
+      <div class="grand-total ${cheaper==='B'?'winner':''}">
+        <div>B안 종합</div>
+        <div class="grand-total-num">${fmt(bTotal)}<span>원</span></div>
+      </div>
+    </div>
+    ${a.items.length || b.items.length ? `
+      <div class="grand-verdict">
+        ${cheaper==='='?'A·B 동일':`${cheaper}안이 ${fmt(Math.abs(aTotal-bTotal))}원 더 저렴`}
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderReturnPicker() {
+  const R = window.DATA.RETURN_DAY;
+  return `
+    <div class="section">
+      <div class="section-num">★  RETURN PICK</div>
+      <div class="section-title serif">복귀 옵션 선택</div>
+      <div class="section-sub">카페 1개 + 해장 1개 → 종합 비용에 합산됨</div>
+    </div>
+    <div class="cards-wrap">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)">›</button>
+      <div class="cards-scroll">
+        ${R.cafes.map(it => renderCard(it, 'R', 'cafe')).join('')}
+      </div>
+    </div>
+    <div class="cards-wrap" style="margin-top:8px;">
+      <button class="cards-nav prev" onclick="scrollCards(this,-1)">‹</button>
+      <button class="cards-nav next" onclick="scrollCards(this,1)">›</button>
+      <div class="cards-scroll">
+        ${R.haejang.map(it => renderCard(it, 'R', 'haejang')).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderCompare() {
+  const view = document.querySelector('.view-compare');
+  if (!view) return;
+  const D = window.DATA;
+
+  view.innerHTML = `
+    <div class="app-header">
+      <button class="back-btn" onclick="location.hash='menu'">←</button>
+      <div class="header-title latin">COMPARE</div>
+      <div class="header-actions">
+        <button class="icon-btn music-toggle" onclick="toggleMute()">🔊</button>
+      </div>
+    </div>
+
+    <div class="plan-hero">
+      <div class="plan-tag">COMPARE</div>
+      <h1 class="plan-title serif">A 안 vs B 안</h1>
+      <div class="plan-subtitle">선택 기반 종합 비교 (복귀 포함)</div>
+    </div>
+
+    <!-- 종합 비용 (선택 반영) -->
+    <div class="section">
+      <div class="section-num">00  GRAND TOTAL</div>
+      <div class="section-title serif">선택 기반 종합 비용</div>
+      <div class="section-sub">A·B 각 페이지에서 점심/놀거리 + 아래 복귀 옵션 선택 시 자동 합산</div>
+    </div>
+    <div class="grand-box" id="compare-grand"></div>
+
+    <!-- 복귀 옵션 선택 -->
+    ${renderReturnPicker()}
+
+    <div class="compare-table">
+      <div class="compare-head">
+        <div>비교 항목</div>
+        <div class="col-a">A 안</div>
+        <div class="col-b">B 안</div>
+      </div>
+      ${D.COMPARE.map(c => `
+        <div class="compare-row">
+          <div>${c.label}</div>
+          <div class="${c.winner==='A' ? 'winner-A' : ''}">${c.a}</div>
+          <div class="${c.winner==='B' ? 'winner-B' : ''}">${c.b}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="compare-verdict">
+      <div class="verdict-label">FINAL VERDICT</div>
+      <div class="verdict-winner serif">${D.COMPARE_VERDICT.winner === 'B' ? 'B 안 추천' : 'A 안 추천'}</div>
+      <div class="verdict-reason">${D.COMPARE_VERDICT.reason}</div>
+    </div>
+
+    <div class="section" style="text-align:center; padding-top:40px;">
+      <div style="display:flex; gap:12px; justify-content:center; max-width:400px; margin:0 auto;">
+        <a href="#a" class="card-action" style="flex:1; padding:14px 0;">A 안 보기</a>
+        <a href="#b" class="card-action primary" style="flex:1; padding:14px 0;">B 안 보기</a>
+      </div>
+    </div>
+
+    <div class="app-footer">
+      <button class="share-btn" onclick="shareToKakao()">
+        <span>💬</span> 카카오톡으로 공유
+      </button>
+      <div class="footer-meta">BIN MICHELIN ROAD</div>
+    </div>
+  `;
+}
+
+// ═══ 지도 (Leaflet — 도메인 인증 불필요) ═══
+const VWORLD_KEY = 'FA24C8F5-407F-3393-9081-E69BAC0D6EB5';
+let mapsInitialized = {};
+
+function initPlanMaps(code) {
+  if (!window.L) {
+    initPlanMaps._retries = (initPlanMaps._retries || 0) + 1;
+    if (initPlanMaps._retries > 10) return;
+    setTimeout(() => initPlanMaps(code), 300);
+    return;
+  }
+  if (mapsInitialized[code]) return;
+
+  const container = document.getElementById(`map-overview-${code}`);
+  if (!container) return;
+
+  const plan = window.DATA.PLANS[code];
+  const D = window.DATA;
+
+  const start = plan.route[0];
+  const end = plan.route[plan.route.length - 1];
+
+  const map = L.map(container, {
+    zoomControl: true,
+    scrollWheelZoom: false,
+    dragging: true,
+    attributionControl: false,
+  }).setView([(start.lat+end.lat)/2, (start.lon+end.lon)/2], 10);
+
+  // VWorld 한글 타일 (키 있으면 사용, 안 되면 OSM 폴백)
+  const vworld = L.tileLayer(
+    `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`,
+    { maxZoom: 18, attribution: '&copy; VWorld' }
+  );
+  const osm = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { maxZoom: 19, attribution: '&copy; OSM' }
+  );
+  vworld.on('tileerror', () => {
+    if (!map.hasLayer(osm)) { map.removeLayer(vworld); osm.addTo(map); }
+  });
+  vworld.addTo(map);
+
+  // 폴리라인
+  const latlngs = plan.route.map(pt => [pt.lat, pt.lon]);
+  L.polyline(latlngs, {
+    color: plan.accent, weight: 4, opacity: 0.85,
+    dashArray: code === 'A' ? '8,4' : null,
+  }).addTo(map);
+
+  // 마커 (커스텀 디자인)
+  plan.route.forEach(pt => {
+    const color = pt.type === 'start' ? '#C0392B'
+                : pt.type === 'end'   ? '#D4AF37'
+                : pt.type === 'lunch' ? '#A04000'
+                : '#7F8C8D';
+    const html = `
+      <div style="position:relative; transform:translate(-50%,-100%);">
+        <div style="background:${color}; color:#fff; padding:6px 12px; border-radius:18px;
+                    border:2px solid #fff; font-weight:700; font-size:12px;
+                    box-shadow:0 3px 10px rgba(0,0,0,0.5); white-space:nowrap;
+                    font-family:'Noto Sans KR',sans-serif;">${pt.name}</div>
+        <div style="position:absolute; left:50%; bottom:-7px; transform:translateX(-50%);
+                    width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent;
+                    border-top:7px solid ${color};"></div>
+      </div>`;
+    const icon = L.divIcon({
+      className: 'custom-pin', html, iconSize: [0,0], iconAnchor: [0,0],
+    });
+    const m = L.marker([pt.lat, pt.lon], { icon }).addTo(map);
+    m.on('click', () => {
+      window.open(`https://map.kakao.com/?q=${encodeURIComponent(pt.name)}`, '_blank');
+    });
+  });
+
+  // 지도 범위 자동
+  map.fitBounds(latlngs, { padding: [40,40] });
+
+  // 오버레이 버튼 (카카오맵 열기)
+  const overlay = document.createElement('button');
+  overlay.className = 'map-overlay';
+  overlay.textContent = '카카오맵에서 보기 →';
+  overlay.style.zIndex = '999';
+  overlay.onclick = (e) => {
+    e.stopPropagation();
+    window.open(`https://map.kakao.com/?q=${encodeURIComponent(D.META.pension.name)}`, '_blank');
+  };
+  container.appendChild(overlay);
+
+  mapsInitialized[code] = true;
+  setTimeout(() => map.invalidateSize(), 200);
+}
+
+// ═══ 카카오톡 공유 ═══
+function shareToKakao() {
+  initKakao();
+  if (!window.Kakao || !window.Kakao.Share) {
+    alert('카카오 SDK를 불러올 수 없어요. 새로고침해 주세요.');
+    return;
+  }
+  const D = window.DATA;
+  const url = window.location.href.split('#')[0];
+  Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `${D.META.title} · ${D.META.subtitle}`,
+      description: `${D.META.startDate} ~ ${D.META.endDate} · ${D.META.people}\n${calcDday()}`,
+      imageUrl: 'https://via.placeholder.com/800x420/0a0a0a/d4af37?text=BIN+MICHELIN+ROAD',
+      link: { mobileWebUrl: url, webUrl: url },
+    },
+    buttons: [{ title: '여행 일정 보기', link: { mobileWebUrl: url, webUrl: url } }],
+  });
+}
+
+// ═══ 초기화 ═══
+window.addEventListener('DOMContentLoaded', () => {
+  setupBgm();
+  setupIntro();
+  renderMenu();
+  renderPlan('A');
+  renderPlan('B');
+  renderCompare();
+  renderReturn();
+  window.addEventListener('hashchange', router);
+  router();
+  startDdayCountdown();
+
+  // 카카오 맵 SDK 동적 로드
+  const script = document.createElement('script');
+  script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+  script.onload = () => kakao.maps.load(() => {
+    if (currentView === 'a' || currentView === 'b') {
+      initPlanMaps(currentView.toUpperCase());
+    }
+  });
+  document.head.appendChild(script);
+
+  // 카카오 SDK
+  const k = document.createElement('script');
+  k.src = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
+  k.onload = initKakao;
+  document.head.appendChild(k);
+
+  // 로더 숨김
+  setTimeout(() => {
+    const loader = document.querySelector('.loader');
+    if (loader) loader.classList.add('hidden');
+  }, 600);
+});
