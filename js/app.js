@@ -22,6 +22,22 @@ function formatDepartureKo(iso) {
   return `${y}년 ${m}월 ${day}일 ${ampm} ${h12}시${minStr}`;
 }
 
+// ═══ 현재 시간 한국어 표기 ═══
+function formatNowKo() {
+  const d = new Date();
+  const w = ['일','월','화','수','목','금','토'][d.getDay()];
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const h = d.getHours();
+  const min = d.getMinutes();
+  const sec = d.getSeconds();
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h % 12 || 12;
+  const pad = n => String(n).padStart(2,'0');
+  return `현재 ${y}.${pad(m)}.${pad(day)} (${w}) ${ampm} ${pad(h12)}:${pad(min)}:${pad(sec)}`;
+}
+
 // ═══ D-Day ═══
 function calcDday() {
   const target = new Date(window.DATA.META.startDateTime || window.DATA.META.startDate);
@@ -46,6 +62,8 @@ function startDdayCountdown() {
   const update = () => {
     const txt = calcDday();
     document.querySelectorAll('.dday-text').forEach(el => el.textContent = txt);
+    const nowTxt = formatNowKo();
+    document.querySelectorAll('.now-text').forEach(el => el.textContent = nowTxt);
   };
   update();
   setInterval(update, 1000); // 1초마다
@@ -159,7 +177,8 @@ function renderMenu() {
       <div class="menu-divider"></div>
       <div class="menu-sub">${D.META.subtitle}  ·  ${D.META.startDate.replace(/-/g, '. ')} ~ ${D.META.endDate.slice(-2)}</div>
       <div class="menu-depart">${formatDepartureKo(D.META.startDateTime)} 출발</div>
-      <div class="menu-dday dday-text">${dday}</div>
+      <div class="menu-now now-text">${formatNowKo()}</div>
+      <div class="menu-dday-big dday-text">${dday}</div>
     </div>
 
     <div class="menu-banners">
@@ -170,8 +189,10 @@ function renderMenu() {
     </div>
 
     <div class="menu-footer">
-      <div class="pension-mini serif">${D.META.pension.name}</div>
-      <div>${D.META.pension.addr}  ·  체크인 ${D.META.pension.checkin}</div>
+      <a href="${D.NAVER(D.META.pension.name + ' 안면도')}" target="_blank" rel="noopener" class="pension-mini-link">
+        <div class="pension-mini serif">${D.META.pension.name} ↗</div>
+        <div>${D.META.pension.addr}  ·  체크인 ${D.META.pension.checkin}</div>
+      </a>
       <div style="margin-top:24px;">
         <button class="share-btn" onclick="shareToKakao()">
           <span>💬</span> 카카오톡으로 공유
@@ -292,12 +313,12 @@ function renderPlan(code) {
     </div>
 
     <!-- 펜션 정보 -->
-    <div class="pension-card">
-      <div class="pension-label">YOUR STAY</div>
+    <a href="${D.NAVER(D.META.pension.name + ' 안면도')}" target="_blank" rel="noopener" class="pension-card pension-card-link">
+      <div class="pension-label">YOUR STAY  ·  탭하여 네이버 검색 ↗</div>
       <div class="pension-name serif">${D.META.pension.name}</div>
       <div class="pension-addr">${D.META.pension.addr}</div>
       <div class="pension-checkin">CHECK-IN ${D.META.pension.checkin}</div>
-    </div>
+    </a>
 
     <!-- 광역 지도 -->
     <div class="section">
@@ -382,9 +403,10 @@ function renderPlan(code) {
     </div>
 
     <div class="app-footer">
-      <button class="share-btn" onclick="shareToKakao()">
-        <span>💬</span> 카카오톡으로 공유
+      <button class="share-btn" onclick="shareToKakao('${code}')">
+        <span>💬</span> 내 ${code === 'A' ? 'Trip A' : 'Trip B'} 선택 결과 카톡 공유
       </button>
+      ${renderHomeButton()}
       <div class="footer-meta">BIN MICHELIN ROAD  ·  ${D.META.startDate.split('-')[0]}</div>
     </div>
   `;
@@ -616,9 +638,38 @@ function renderSelSummary(planCode, r) {
         <span class="sel-item-price">${((r.fuel + r.toll)/10000).toFixed(1)}만원</span>
       </div>
     </div>
-    <a href="#compare" class="sel-cta">
-      <span>📊</span>
-      <span>Trip A·B 비교 페이지로 →</span>
+    ${renderSelCTAs(planCode, r)}
+  `;
+}
+
+// 모든 페이지 공통 푸터 — "처음으로" 버튼
+function renderHomeButton() {
+  return `
+    <a href="#menu" class="home-btn">🏠 처음 화면으로</a>
+  `;
+}
+
+// 반대편 plan 선택 여부 + 비교 버튼 — 양쪽 다 있으면 비교 강조
+function renderSelCTAs(planCode, r) {
+  const otherCode = planCode === 'A' ? 'B' : 'A';
+  const otherSel = getSelection()[otherCode] || {};
+  const otherHas = !!otherSel.lunch || (otherSel.play || []).length > 0;
+  const otherTitle = `Trip ${otherCode}`;
+
+  if (otherHas) {
+    // 양쪽 다 골랐으면 → 비교 페이지로
+    return `
+      <a href="#compare" class="sel-cta">
+        <span>📊</span>
+        <span>비교 페이지로 → 두 안 합산 보기</span>
+      </a>
+    `;
+  }
+  // 한쪽만 골랐으면 → 반대편 선택 유도
+  return `
+    <a href="#${otherCode.toLowerCase()}" class="sel-cta">
+      <span>👉</span>
+      <span>${otherTitle} 선택하러 가기 →</span>
     </a>
   `;
 }
@@ -877,6 +928,7 @@ function renderReturn() {
     <div class="app-footer">
       <a href="#a" class="card-action" style="display:inline-block; padding:12px 24px; margin-right:8px;">Trip A 다시 보기</a>
       <a href="#b" class="card-action primary" style="display:inline-block; padding:12px 24px;">Trip B 다시 보기</a>
+      ${renderHomeButton()}
       <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · DAY 2</div>
     </div>
   `;
@@ -941,7 +993,7 @@ function renderFacilities() {
     ${groupHTML}
 
     <div class="app-footer">
-      <a href="#menu" class="card-action" style="display:inline-block; padding:12px 24px;">← 메뉴로</a>
+      ${renderHomeButton()}
       <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · NEARBY</div>
     </div>
   `;
@@ -1116,9 +1168,10 @@ function renderCompare() {
     </div>
 
     <div class="app-footer">
-      <button class="share-btn" onclick="shareToKakao()">
-        <span>💬</span> 카카오톡으로 공유
+      <button class="share-btn" onclick="shareToKakao('compare')">
+        <span>💬</span> 비교 결과 카톡으로 공유
       </button>
+      ${renderHomeButton()}
       <div class="footer-meta">BIN MICHELIN ROAD</div>
     </div>
   `;
@@ -1247,7 +1300,50 @@ function initPlanMaps(code) {
 }
 
 // ═══ 카카오톡 공유 ═══
-function shareToKakao() {
+// 선택 결과를 텍스트로 (카톡 공유용)
+function buildShareDescription(mode) {
+  const D = window.DATA;
+  const fmt = n => (n/10000).toFixed(1) + '만원';
+  const findName = (list, tag) => { const it = list.find(x=>x.tag===tag); return it ? `${it.tag} ${it.name}` : '미선택'; };
+
+  if (mode === 'A' || mode === 'B') {
+    const r = calcSelection(mode);
+    const sel = r.sel;
+    const lines = [];
+    lines.push(`[Trip ${mode}] ${D.PLANS[mode].subtitle}`);
+    if (sel.lunch) lines.push(`🍽 ${findName(D.PLANS[mode].lunch, sel.lunch)}`);
+    (sel.play||[]).forEach(t => lines.push(`🎯 ${findName(D.PLANS[mode].play, t)}`));
+    if (r.items.length) {
+      lines.push(`총 ${r.totalKm.toFixed(0)}km · ${r.totalMn}분 · ${fmt(r.totalCost)}`);
+    } else {
+      lines.push('아직 선택 안함 — 링크에서 직접 골라보세요');
+    }
+    return lines.join('\n');
+  }
+  if (mode === 'compare') {
+    const a = calcSelection('A');
+    const b = calcSelection('B');
+    const ret = calcReturn();
+    const aTotal = a.totalCost + ret.totalCost;
+    const bTotal = b.totalCost + ret.totalCost;
+    const lines = ['[Trip A·B 비교 결과]'];
+    if (a.items.length || b.items.length || ret.items.length) {
+      lines.push(`Trip A: ${fmt(aTotal)}  vs  Trip B: ${fmt(bTotal)}`);
+      const cheap = aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : null);
+      if (cheap) lines.push(`→ Trip ${cheap}안이 ${fmt(Math.abs(aTotal - bTotal))} 더 저렴`);
+      if (a.sel.lunch) lines.push(`A 점심: ${findName(D.PLANS.A.lunch, a.sel.lunch)}`);
+      if (b.sel.lunch) lines.push(`B 점심: ${findName(D.PLANS.B.lunch, b.sel.lunch)}`);
+      if (ret.sel.cafe) lines.push(`복귀 카페: ${findName(D.RETURN_DAY.cafes, ret.sel.cafe)}`);
+      if (ret.sel.haejang) lines.push(`복귀 해장: ${findName(D.RETURN_DAY.haejang, ret.sel.haejang)}`);
+    } else {
+      lines.push('각 페이지에서 점심·놀거리·복귀를 골라보세요');
+    }
+    return lines.join('\n');
+  }
+  return `${D.META.startDate} ~ ${D.META.endDate} · ${D.META.people}\n${calcDday()}`;
+}
+
+function shareToKakao(mode) {
   initKakao();
   if (!window.Kakao || !window.Kakao.Share) {
     alert('카카오 SDK를 불러올 수 없어요. 새로고침해 주세요.');
@@ -1255,15 +1351,19 @@ function shareToKakao() {
   }
   const D = window.DATA;
   const url = window.location.href.split('#')[0];
+  // mode 별 진입 hash 부여 (수신자가 같은 페이지로 이동)
+  const hash = mode === 'A' ? '#a' : mode === 'B' ? '#b' : mode === 'compare' ? '#compare' : '';
+  const linkUrl = url + hash;
+  const titleSuffix = mode === 'A' ? ' · Trip A 선택' : mode === 'B' ? ' · Trip B 선택' : mode === 'compare' ? ' · Trip A·B 비교' : '';
   Kakao.Share.sendDefault({
     objectType: 'feed',
     content: {
-      title: `${D.META.title} · ${D.META.subtitle}`,
-      description: `${D.META.startDate} ~ ${D.META.endDate} · ${D.META.people}\n${calcDday()}`,
+      title: `${D.META.title} · ${D.META.subtitle}${titleSuffix}`,
+      description: buildShareDescription(mode),
       imageUrl: 'https://via.placeholder.com/800x420/0a0a0a/d4af37?text=BIN+MICHELIN+ROAD',
-      link: { mobileWebUrl: url, webUrl: url },
+      link: { mobileWebUrl: linkUrl, webUrl: linkUrl },
     },
-    buttons: [{ title: '여행 일정 보기', link: { mobileWebUrl: url, webUrl: url } }],
+    buttons: [{ title: '여행 일정 보기', link: { mobileWebUrl: linkUrl, webUrl: linkUrl } }],
   });
 }
 

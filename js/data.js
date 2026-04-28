@@ -238,12 +238,6 @@ const PLANS = {
         review:'섬 전체가 한국 전통 정원 — 죽도 명물, 사진 명소',
         kid:'정원 산책 + 다리 건너기 신기 ★★★★',
         photo:'', tone:'#1A5276' },
-      { tag:'P8', name:'천북 굴단지', addr:'보령시 천북면 홍보로 1061', lat:36.45, lon:126.50,
-        star:4, price:'4인 약 5만원', class:'low', km:31.9, min:38,
-        menu:'굴구이/굴찜 1kg 1.5~2만 (5월 끝물)',
-        review:'서해 굴 명소 — 직접 까서 구워먹는 재미',
-        kid:'굴 못 먹는 아이는 새우/조개 추가',
-        photo:'', tone:'#7D6608' },
     ],
     cost: {
       rows: [
@@ -409,10 +403,10 @@ const RETURN_DAY = {
   title: '복귀 (5/5 화)',
   sub: '체크아웃 → 카페 → 해장 → 집',
   schedule: [
-    { time:'09:00', label:'체크아웃', place:'방울방울펜션' },
-    { time:'10:00', label:'카페', place:'아래 카페에서 모닝 ☕', isChoice:true, target:'cafe' },
-    { time:'11:30', label:'해장', place:'길목 해장국 ↓', isChoice:true, target:'haejang' },
-    { time:'14:00', label:'도착', place:'아산 e편한세상' },
+    { time:'11:00', label:'체크아웃', place:'방울방울펜션' },
+    { time:'11:30', label:'카페', place:'아래 카페에서 모닝 ☕', isChoice:true, target:'cafe' },
+    { time:'12:30', label:'해장', place:'길목 해장국 ↓', isChoice:true, target:'haejang' },
+    { time:'15:00', label:'도착', place:'아산 e편한세상' },
   ],
   cafes: [
     { tag:'C1', name:'카페하버무드', short:'카페 하버무드',
