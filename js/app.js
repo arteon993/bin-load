@@ -70,7 +70,7 @@ function startDdayCountdown() {
 }
 
 // ═══ 라우팅 ═══
-const VIEWS = ['intro', 'menu', 'a', 'b', 'compare', 'return', 'facilities'];
+const VIEWS = ['intro', 'menu', 'a', 'b', 'compare', 'return', 'facilities', 'market'];
 let currentView = 'intro';
 
 function showView(name) {
@@ -97,6 +97,9 @@ function showView(name) {
   }
   if (name === 'facilities') {
     setTimeout(() => renderFacilities(), 100);
+  }
+  if (name === 'market') {
+    setTimeout(() => renderMarket(), 100);
   }
 }
 
@@ -338,6 +341,13 @@ function renderPlan(code) {
       ${renderScheduleHTML(code)}
     </div>
 
+    <!-- 수산시장 비교 페이지 진입 버튼 (점심 위) -->
+    <a href="#market" class="market-cta-btn">
+      <span class="market-cta-icon">🐟</span>
+      <span class="market-cta-text">대천항 vs 백사장항 수산시장 비교 보기</span>
+      <span class="market-cta-arrow">→</span>
+    </a>
+
     <!-- 점심 카드 -->
     <div class="section" id="lunch-section-${code}">
       <div class="section-num">03  LUNCH</div>
@@ -378,14 +388,6 @@ function renderPlan(code) {
         <div class="sel-empty-sub">위 카드에서 점심 1개 + 놀거리 1~2개를 골라보세요 ↑</div>
       </div>
     </div>
-
-    <!-- 수산시장 비교 -->
-    <div class="section">
-      <div class="section-num">05  MARKET</div>
-      <div class="section-title serif">수산시장 비교</div>
-      <div class="section-sub">대천항 vs 백사장항 · 한눈에 보기</div>
-    </div>
-    ${renderMarketCompare(code)}
 
     <!-- 복귀 (5/5) — 별도 페이지 링크 -->
     <div class="section">
@@ -1016,6 +1018,40 @@ function renderFacilities() {
     <div class="app-footer">
       ${renderHomeButton()}
       <div class="footer-meta" style="margin-top:24px;">BIN MICHELIN ROAD · NEARBY</div>
+    </div>
+  `;
+}
+
+// ═══ 수산시장 비교 — 별도 페이지 ═══
+function renderMarket() {
+  const view = document.querySelector('.view-market');
+  if (!view) return;
+  const M = window.DATA.MARKET_COMPARE;
+  view.innerHTML = `
+    <div class="app-header">
+      <button class="back-btn" onclick="history.back()">←</button>
+      <div class="header-title latin">MARKET</div>
+      <div class="header-actions">
+        <button class="icon-btn music-toggle" onclick="toggleMute()">🔊</button>
+      </div>
+    </div>
+
+    <div class="plan-hero">
+      <div class="plan-tag">SEAFOOD MARKET</div>
+      <h1 class="plan-title serif">${M.title}</h1>
+      <div class="plan-subtitle">${M.sub}</div>
+    </div>
+
+    ${renderMarketCompare()}
+
+    <a href="javascript:history.back()" class="sel-cta" style="margin: 24px 16px 0;">
+      <span>↩</span>
+      <span>이전 페이지로 돌아가기</span>
+    </a>
+
+    <div class="app-footer">
+      ${renderHomeButton()}
+      <div class="footer-meta" style="margin-top:16px;">BIN MICHELIN ROAD · MARKET</div>
     </div>
   `;
 }

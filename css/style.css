@@ -1603,6 +1603,29 @@ html, body {
   to { opacity: 0; transform: translate(-50%, -20px); }
 }
 
+/* ═══ 수산시장 비교 페이지 진입 버튼 (점심 위) ═══ */
+.market-cta-btn {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 16px 24px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(31,97,141,0.18) 0%, rgba(26,82,118,0.10) 100%);
+  border: 1px solid rgba(31,97,141,0.5);
+  border-radius: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.market-cta-btn:hover {
+  background: rgba(31,97,141,0.3);
+  border-color: rgba(31,97,141,0.85);
+  transform: translateY(-1px);
+}
+.market-cta-icon { font-size: 22px; flex-shrink: 0; }
+.market-cta-text { flex: 1; line-height: 1.4; }
+.market-cta-arrow { color: #5fa8d3; font-size: 18px; flex-shrink: 0; }
+
 /* ═══ 처음으로 버튼 ═══ */
 .home-btn {
   display: inline-block;
