@@ -1,5 +1,5 @@
 // ═══ 빈슐랭 로드 — App ═══
-const KAKAO_JS_KEY = 'fe986b58518730a223c0fc7d057e348d';
+const KAKAO_JS_KEY = '2a490d9cb03103dc9daa7549d4159c01';
 
 // 카카오 SDK 초기화
 function initKakao() {
