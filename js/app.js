@@ -863,8 +863,18 @@ window.scrollCards = function(btn, dir) {
 
 // ═══ 카드 ═══
 function renderCard(it, planCode, kind) {
-  // 음식점·카페·해장은 사진 없음 (명시적 photo 있는 관광지만 표시)
-  const photo = it.photo || '';
+  // 음식점·카페·해장은 사진 없음 / 놀거리는 photo 또는 카테고리 fallback 사용
+  let photo = it.photo || '';
+  if (!photo && kind === 'play' && typeof pickPhoto === 'function') {
+    const p = pickPhoto(it);
+    // pickPhoto의 한식 fallback은 음식이라 놀거리엔 부적합 → 매칭이 정말 됐을 때만
+    const hay = (it.cat || '') + ' ' + (it.menu || '') + ' ' + (it.name || '');
+    if (window.DATA?.CATEGORY_PHOTOS) {
+      for (const k of Object.keys(window.DATA.CATEGORY_PHOTOS)) {
+        if (hay.includes(k)) { photo = window.DATA.CATEGORY_PHOTOS[k]; break; }
+      }
+    }
+  }
   const photoStyle = photo
     ? `background-image:url('${photo}'); background-color:${it.tone};`
     : `background-color:${it.tone};`;

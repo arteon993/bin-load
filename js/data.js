@@ -56,6 +56,8 @@ const PHOTOS = {
   "기지포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/06/2716306_image2_1.jpg',
   "바람아래해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/83/3055583_image2_1.jpg',
   "몽산포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/86/3344186_image2_1.jpg',
+  "신두리": 'https://tong.visitkorea.or.kr/cms/resource/91/4058091_image2_1.jpg',
+  "쥬쥬": 'https://tong.visitkorea.or.kr/cms/resource/12/3512912_image2_1.jpg',
 };
 
 // 카드에 photo가 비어있을 때 카테고리·키워드별 fallback 사진 (Unsplash)
@@ -107,6 +109,12 @@ const CATEGORY_PHOTOS = {
   '야간':              U('1483478550801-ceba5fe50e8e'),
   '굴단지':            U('1559339352-11d035aa65de'),
   '바닷길':            U('1500382017468-9049fed747ef'),
+  // 레저
+  'ATV':              U('1583912267550-aae6e4e8b9d6'),
+  '사륜':             U('1583912267550-aae6e4e8b9d6'),
+  '오토바이':          U('1583912267550-aae6e4e8b9d6'),
+  '카트':             U('1599494831033-cb5fae8f0b3a'),
+  '레저':             U('1599494831033-cb5fae8f0b3a'),
 };
 // 키워드/카테고리/메뉴에서 사진 추출
 function pickPhoto(it) {
@@ -367,7 +375,7 @@ const PLANS = {
         menu:'한국의 사하라 — 모래언덕 + 갈대 + 고라니동산',
         review:'천연기념물 431호 · 국내 유일 해안사구 · 다른 데서 못 봄',
         kid:'모래언덕 뛰어다니기 = 6세 신기방기 ★★★★★',
-        photo:'', tone:'#7D6608' },
+        photo: PHOTOS['신두리'], tone:'#7D6608' },
       { tag:'Q4', name:'오마이갤러리 트릭아트', addr:'안면대로 3171-6', lat:36.49870, lon:126.35795,
         star:4, price:'1만/인', class:'low', km:20.3, min:27,
         menu:'세계명화 150점 + 트릭아트 8개동',
@@ -392,36 +400,24 @@ const PLANS = {
         review:'세계적 수목원 — 봄 목련/철쭉 만개',
         kid:'산책로 + 호수 + 동백 신기',
         photo:'', tone:'#1E8449' },
-      { tag:'Q8', name:'만리포해수욕장', addr:'태안군 소원면 만리포2길 138', lat:36.78, lon:126.15,
-        star:4, price:'무료', class:'low', km:35.7, min:41,
-        menu:'백사장 3km + 솔숲',
-        review:'서해 5대 해수욕장 — 일몰 명소',
-        kid:'백사장 모래놀이 + 조개잡이 ★★★★',
-        photo: PHOTOS['만리포해수욕장'], tone:'#1A5276' },
-      { tag:'Q9', name:'기지포해수욕장', addr:'태안군 안면읍 창기리', lat:36.529, lon:126.337,
-        star:4, price:'무료', class:'low', km:9.0, min:14,
+      { tag:'Q8', name:'기지포해수욕장', addr:'태안군 안면읍 창기리', lat:36.529, lon:126.337,
+        star:5, price:'무료', class:'low', km:9.0, min:14,
         menu:'잔잔한 백사장 + 산책로 + 솔숲',
         review:'안면도 중부 · 펜션 가까움 · 한적해서 아이 놀기 편함',
         kid:'파도 약함 + 모래 곱움 = 6세 안전 ★★★★★',
         photo: PHOTOS['기지포해수욕장'], tone:'#1F618D' },
-      { tag:'Q10', name:'운여해변', addr:'태안군 고남면 장곡리', lat:36.444, lon:126.353,
-        star:5, price:'무료', class:'low', km:17.0, min:24,
-        menu:'고요한 백사장 + 일몰 + 사진 명소',
-        review:'안면도 남단 · 관광객 적고 평화 · 인스타 핫플',
-        kid:'잔잔한 갯벌 + 산책 = 힘 안 들고 OK ★★★★',
-        photo: PHOTOS['운여해변'], tone:'#5B2C6F' },
-      { tag:'Q11', name:'두여해수욕장', addr:'태안군 고남면 장곡리', lat:36.443, lon:126.337,
-        star:4, price:'무료', class:'low', km:17.5, min:25,
-        menu:'한적한 백사장 + 야영장',
-        review:'운여해변 옆 · 작은 만 형태 · 한산함',
-        kid:'얕은 물 + 모래놀이 좋음 ★★★★',
-        photo: PHOTOS['두여해수욕장'], tone:'#1A5276' },
-      { tag:'Q12', name:'바람아래해수욕장', addr:'태안군 고남면 장곡리', lat:36.430, lon:126.360,
-        star:4, price:'무료', class:'low', km:18.0, min:26,
-        menu:'백사장 + 갯벌 + 사구',
-        review:'안면도 남단 숨은 명소 · 바람 세니 외투 챙기세요',
-        kid:'갯벌 조개잡이 가능 ★★★★',
-        photo: PHOTOS['바람아래해수욕장'], tone:'#7D6608' },
+      { tag:'Q9', name:'안면도 ATV·사륜오토바이', addr:'태안군 안면읍 (백사장·꽃지 인근 ATV장)', lat:36.500, lon:126.340,
+        star:4, price:'1인 3~5만원', class:'mid', km:14.0, min:18,
+        menu:'사륜 ATV 임도/해안 코스 (10~30분)',
+        review:'헬멧·장갑 제공 · 가족 인기 액티비티 · 예약 권장',
+        kid:'만 7세 이상 어른 동승 OK · 운전은 어른 ★★★★',
+        photo:'', tone:'#7D6608' },
+      { tag:'Q10', name:'안면도 카트·레저파크', addr:'태안군 안면읍 (꽃지 인근 카트장)', lat:36.510, lon:126.345,
+        star:4, price:'1인 2~3만원', class:'low', km:13.0, min:17,
+        menu:'전동 카트 트랙 (5분~) + 부대시설',
+        review:'안전한 트랙 · 6세도 동승 가능 · 짧고 강렬',
+        kid:'어른 동승 가능 ★★★★',
+        photo:'', tone:'#922B21' },
     ],
     cost: {
       rows: [
@@ -613,4 +609,4 @@ const NEARBY_FACILITIES = [
     km:8.0, min:14, note:'하나로마트 옆 · 현금 인출' },
 ];
 
-window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NEARBY_FACILITIES, FACILITY_META, PHOTOS, NAVER, KMAP };
+window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NEARBY_FACILITIES, FACILITY_META, PHOTOS, CATEGORY_PHOTOS, NAVER, KMAP };
