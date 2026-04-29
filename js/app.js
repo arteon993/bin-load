@@ -492,10 +492,27 @@ function renderCompareTable(a, b, r) {
   const bTotal = b.totalCost + r.totalCost;
   const hasAnySel = a.items.length || b.items.length || r.items.length;
   const findName = (list, tag) => { const it = list.find(x=>x.tag===tag); return it ? `${it.tag} ${it.name}` : '미선택'; };
+  const findItem = (list, tag) => list.find(x=>x.tag===tag) || null;
   const cafeName = r.sel.cafe ? findName(D.RETURN_DAY.cafes, r.sel.cafe) : '미선택';
   const haejangName = r.sel.haejang ? findName(D.RETURN_DAY.haejang, r.sel.haejang) : '미선택';
 
-  // 정적 비교 행에서 총 비용은 선택 시 동적으로 대체
+  // 선택 기반 동적 값 계산
+  const aLunch = a.sel.lunch ? findItem(D.PLANS.A.lunch, a.sel.lunch) : null;
+  const bLunch = b.sel.lunch ? findItem(D.PLANS.B.lunch, b.sel.lunch) : null;
+  const aPlays = (a.sel.play||[]).map(t => findItem(D.PLANS.A.play, t)).filter(Boolean);
+  const bPlays = (b.sel.play||[]).map(t => findItem(D.PLANS.B.play, t)).filter(Boolean);
+
+  // 선택한 점심 카테고리 (없으면 '미선택')
+  const lunchCatA = aLunch ? `${aLunch.tag} ${aLunch.name}` : '미선택';
+  const lunchCatB = bLunch ? `${bLunch.tag} ${bLunch.name}` : '미선택';
+  // 놀거리 — 선택한 항목명으로
+  const playA = aPlays.length ? aPlays.map(p => `${p.tag} ${p.name}`).join('<br>') : '미선택';
+  const playB = bPlays.length ? bPlays.map(p => `${p.tag} ${p.name}`).join('<br>') : '미선택';
+  // 펜션-식당 거리 (선택 점심 km, 없으면 정적)
+  const distA = aLunch ? `${aLunch.km}km · ${aLunch.min}분` : '미선택';
+  const distB = bLunch ? `${bLunch.km}km · ${bLunch.min}분` : '미선택';
+
+  // 정적 비교 행 — 선택 시 동적 값으로 덮어쓰기
   const baseRows = D.COMPARE.map(c => {
     if (c.label === '총 비용' && hasAnySel) {
       return {
@@ -504,22 +521,26 @@ function renderCompareTable(a, b, r) {
         winner: aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : ''),
       };
     }
+    if (c.label === '점심 다양성' && (aLunch || bLunch)) {
+      return { label:'선택한 점심', a: lunchCatA, b: lunchCatB, winner:'' };
+    }
+    if (c.label === '아이 놀거리' && (aPlays.length || bPlays.length)) {
+      return { label:'선택한 놀거리', a: playA, b: playB, winner:'' };
+    }
+    if (c.label === '펜션-식당 거리' && (aLunch || bLunch)) {
+      const winner = (aLunch && bLunch) ? (aLunch.km < bLunch.km ? 'A' : (bLunch.km < aLunch.km ? 'B' : '')) : '';
+      return { label:'펜션-식당 거리 (선택)', a: distA, b: distB, winner };
+    }
     return c;
   });
 
-  // 선택 연동 추가 행
-  const selRows = [
-    { label:'선택한 점심',
-      a: a.sel.lunch ? findName(D.PLANS.A.lunch, a.sel.lunch) : '미선택',
-      b: b.sel.lunch ? findName(D.PLANS.B.lunch, b.sel.lunch) : '미선택', winner:'' },
-    { label:'선택한 놀거리',
-      a: (a.sel.play||[]).map(t => findName(D.PLANS.A.play, t)).join('<br>') || '미선택',
-      b: (b.sel.play||[]).map(t => findName(D.PLANS.B.play, t)).join('<br>') || '미선택', winner:'' },
+  // 추가 — 복귀 옵션
+  const extraRows = [
     { label:'복귀 카페 (공통)', a: cafeName, b: cafeName, winner:'' },
     { label:'복귀 해장 (공통)', a: haejangName, b: haejangName, winner:'' },
   ];
 
-  const allRows = [...baseRows, ...selRows];
+  const allRows = [...baseRows, ...extraRows];
   return `
     <div class="compare-head">
       <div>비교 항목</div>
@@ -1361,11 +1382,30 @@ async function fallbackShare(title, text, url) {
   }
 }
 
+// 선택 → URL-safe base64 (JSON)
+function encodeSelectionForURL() {
+  try {
+    const sel = getSelection();
+    const json = JSON.stringify(sel);
+    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  } catch (e) { return ''; }
+}
+// URL → 선택
+function decodeSelectionFromURL(str) {
+  try {
+    const b64 = str.replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b64 + '==='.slice((b64.length + 3) % 4);
+    return JSON.parse(decodeURIComponent(escape(atob(pad))));
+  } catch (e) { return null; }
+}
+
 function shareToKakao(mode) {
   const D = window.DATA;
-  const url = window.location.href.split('#')[0];
+  const baseUrl = window.location.href.split('#')[0].split('?')[0];
   const hash = mode === 'A' ? '#a' : mode === 'B' ? '#b' : mode === 'compare' ? '#compare' : '';
-  const linkUrl = url + hash;
+  const selStr = encodeSelectionForURL();
+  const linkUrl = baseUrl + (selStr ? `?sel=${selStr}` : '') + hash;
+  const url = baseUrl;
   const titleSuffix = mode === 'A' ? ' · Trip A 선택' : mode === 'B' ? ' · Trip B 선택' : mode === 'compare' ? ' · Trip A·B 비교' : '';
   const title = `${D.META.title} · ${D.META.subtitle}${titleSuffix}`;
   const description = buildShareDescription(mode);
@@ -1396,7 +1436,31 @@ function shareToKakao(mode) {
 }
 
 // ═══ 초기화 ═══
+// URL에 ?sel=... 있으면 적용 (공유받은 선택)
+function applySharedSelectionFromURL() {
+  const params = new URLSearchParams(location.search);
+  const sel = params.get('sel');
+  if (!sel) return false;
+  const decoded = decodeSelectionFromURL(sel);
+  if (decoded && typeof decoded === 'object') {
+    setSelection(decoded);
+    // URL은 깔끔하게 ?sel= 빼주기
+    const cleanUrl = location.pathname + location.hash;
+    history.replaceState(null, '', cleanUrl);
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.className = 'shared-banner';
+      banner.innerHTML = '✨ 공유받은 선택이 적용됐어요';
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 3500);
+    }, 800);
+    return true;
+  }
+  return false;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  applySharedSelectionFromURL();
   setupBgm();
   setupIntro();
   renderMenu();
