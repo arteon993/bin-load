@@ -1787,6 +1787,32 @@ html, body {
 }
 .pension-mini-link:hover .pension-mini { color: var(--gold); }
 
+/* ═══ 일정 행 — 수산시장 클릭 가능 ═══ */
+.schedule-market {
+  text-decoration: none;
+  color: inherit;
+  display: flex; align-items: center;
+  background: rgba(31,97,141,0.10);
+  border-left: 3px solid #1F618D;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.schedule-market:hover {
+  background: rgba(31,97,141,0.22);
+  transform: translateX(2px);
+}
+.schedule-market .schedule-label.market {
+  background: #1F618D !important;
+  color: #fff !important;
+}
+.schedule-market-cta {
+  font-size: 11px;
+  color: #5fa8d3;
+  margin-left: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 /* ═══ 일정 행 사이 거리 표기 ═══ */
 .schedule-leg {
   display: block;

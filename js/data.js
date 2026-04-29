@@ -133,11 +133,11 @@ const PLANS = {
     ],
     schedule: [
       { time:'10:00', label:'출발', place:'e편한세상 109동 23층', lat:36.77640, lon:127.09409 },
-      { time:'11:30', label:'도착', place:'대천항수산시장', lat:36.32659, lon:126.50922 },
       { time:'12:00', label:'선택', place:'점심에서 골라주세요 ↓', isChoice:true, target:'lunch' },
       { time:'13:30', label:'선택', place:'놀거리에서 골라주세요 ↓', isChoice:true, target:'play' },
-      { time:'14:30', label:'이동', place:'보령해저터널 통과', lat:36.33924, lon:126.47754 },
-      { time:'15:30', label:'체크인', place:'방울방울펜션', lat:36.59227, lon:126.33047 },
+      { time:'14:30', label:'장보기', place:'대천항수산시장', lat:36.32659, lon:126.50922, isMarket:true },
+      { time:'15:00', label:'이동', place:'보령해저터널 통과', lat:36.33924, lon:126.47754 },
+      { time:'16:00', label:'체크인', place:'방울방울펜션', lat:36.59227, lon:126.33047 },
     ],
     lunch: [
       { tag:'A1', name:'대천항수산시장 2층', addr:'보령시 대천항로 334', lat:36.32659, lon:126.50922,
@@ -277,6 +277,7 @@ const PLANS = {
       { time:'11:35', label:'도착', place:'안면도 진입 (안면대교)', lat:36.62000, lon:126.35500 },
       { time:'12:00', label:'선택', place:'점심에서 골라주세요 ↓', isChoice:true, target:'lunch' },
       { time:'13:00', label:'선택', place:'놀거리에서 골라주세요 ↓', isChoice:true, target:'play' },
+      { time:'14:30', label:'장보기', place:'백사장항 수산시장', lat:36.58640, lon:126.31806, isMarket:true },
       { time:'15:00', label:'체크인', place:'방울방울펜션 ★', lat:36.59227, lon:126.33047 },
       { time:'19:00', label:'저녁', place:'펜션 BBQ 또는 외식', lat:36.59227, lon:126.33047 },
     ],

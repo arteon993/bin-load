@@ -835,6 +835,15 @@ function renderScheduleHTML(planCode) {
         </div>
       `;
     }
+    if (s.isMarket) {
+      return `${distHTML}
+        <a class="schedule-row schedule-market" href="#market">
+          <div class="schedule-time">${s.time}</div>
+          <div class="schedule-label market">${s.label}</div>
+          <div class="schedule-place">${s.place} <span class="schedule-market-cta">→ 비교 보기</span></div>
+        </a>
+      `;
+    }
     return `${distHTML}
       <div class="schedule-row">
         <div class="schedule-time">${s.time}</div>
