@@ -183,7 +183,7 @@ function renderMenu() {
 
     <div class="menu-banners">
       ${renderBanner('A', D.PLANS.A, false)}
-      ${renderBanner('B', D.PLANS.B, true)}
+      ${renderBanner('B', D.PLANS.B, false)}
       ${renderCompareBanner()}
       ${renderFacilitiesBanner()}
     </div>
@@ -1343,28 +1343,56 @@ function buildShareDescription(mode) {
   return `${D.META.startDate} ~ ${D.META.endDate} · ${D.META.people}\n${calcDday()}`;
 }
 
-function shareToKakao(mode) {
-  initKakao();
-  if (!window.Kakao || !window.Kakao.Share) {
-    alert('카카오 SDK를 불러올 수 없어요. 새로고침해 주세요.');
-    return;
+// 공유용 폴백 — 카카오 SDK 실패 또는 미지원 시
+async function fallbackShare(title, text, url) {
+  // 1) Web Share API (모바일에서 카톡 포함 모든 앱 선택)
+  if (navigator.share) {
+    try { await navigator.share({ title, text, url }); return true; } catch (e) {}
   }
+  // 2) 클립보드 복사
+  const fullText = `${title}\n\n${text}\n\n${url}`;
+  try {
+    await navigator.clipboard.writeText(fullText);
+    alert('카톡 공유에 실패해서 클립보드에 복사했어요.\n붙여넣기로 공유해 주세요.');
+    return true;
+  } catch (e) {
+    prompt('아래 내용을 복사해서 공유해 주세요:', fullText);
+    return false;
+  }
+}
+
+function shareToKakao(mode) {
   const D = window.DATA;
   const url = window.location.href.split('#')[0];
-  // mode 별 진입 hash 부여 (수신자가 같은 페이지로 이동)
   const hash = mode === 'A' ? '#a' : mode === 'B' ? '#b' : mode === 'compare' ? '#compare' : '';
   const linkUrl = url + hash;
   const titleSuffix = mode === 'A' ? ' · Trip A 선택' : mode === 'B' ? ' · Trip B 선택' : mode === 'compare' ? ' · Trip A·B 비교' : '';
-  Kakao.Share.sendDefault({
-    objectType: 'feed',
-    content: {
-      title: `${D.META.title} · ${D.META.subtitle}${titleSuffix}`,
-      description: buildShareDescription(mode),
-      imageUrl: 'https://via.placeholder.com/800x420/0a0a0a/d4af37?text=BIN+MICHELIN+ROAD',
-      link: { mobileWebUrl: linkUrl, webUrl: linkUrl },
-    },
-    buttons: [{ title: '여행 일정 보기', link: { mobileWebUrl: linkUrl, webUrl: linkUrl } }],
-  });
+  const title = `${D.META.title} · ${D.META.subtitle}${titleSuffix}`;
+  const description = buildShareDescription(mode);
+
+  // 카카오 SDK 시도 (도메인 등록·로컬 환경 등 이슈 시 실패할 수 있음)
+  initKakao();
+  if (window.Kakao && window.Kakao.Share && window.Kakao.isInitialized()) {
+    try {
+      // 깨지지 않는 실제 OG 이미지 (꽃지해수욕장 — TourAPI)
+      const ogImg = (D.PHOTOS && D.PHOTOS['꽃지해수욕장']) || 'https://tong.visitkorea.or.kr/cms/resource/23/3498123_image2_1.jpg';
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title,
+          description,
+          imageUrl: ogImg,
+          link: { mobileWebUrl: linkUrl, webUrl: linkUrl },
+        },
+        buttons: [{ title: '여행 일정 보기', link: { mobileWebUrl: linkUrl, webUrl: linkUrl } }],
+      });
+      return;
+    } catch (e) {
+      console.warn('[shareToKakao] Kakao 공유 실패, 폴백:', e);
+    }
+  }
+  // 폴백
+  fallbackShare(title, description, linkUrl);
 }
 
 // ═══ 초기화 ═══

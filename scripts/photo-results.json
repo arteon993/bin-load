@@ -133,6 +133,31 @@
     "image": "http://tong.visitkorea.or.kr/cms/resource/35/2653435_image2_1.jpg",
     "addr": "충청남도 태안군 소원면 만리포2길 138"
   },
+  "운여해변": {
+    "title": "운여해변",
+    "image": "http://tong.visitkorea.or.kr/cms/resource/42/3339342_image2_1.jpg",
+    "addr": "충청남도 태안군 고남면 장삼포로 535-57"
+  },
+  "두여해수욕장": {
+    "title": "두여해수욕장",
+    "image": "http://tong.visitkorea.or.kr/cms/resource/49/3340749_image2_1.jpg",
+    "addr": "충청남도 태안군 안면읍 정당리"
+  },
+  "기지포해수욕장": {
+    "title": "기지포해수욕장",
+    "image": "http://tong.visitkorea.or.kr/cms/resource/06/2716306_image2_1.jpg",
+    "addr": "충청남도 태안군 안면읍 해안관광로 745-19"
+  },
+  "바람아래해수욕장": {
+    "title": "바람아래해수욕장",
+    "image": "http://tong.visitkorea.or.kr/cms/resource/83/3055583_image2_1.jpg",
+    "addr": "충청남도 태안군 고남면 장곡리"
+  },
+  "몽산포해수욕장": {
+    "title": "몽산포해수욕장",
+    "image": "http://tong.visitkorea.or.kr/cms/resource/86/3344186_image2_1.jpg",
+    "addr": "충청남도 태안군 남면 몽산포길 65-27"
+  },
   "카페하버무드 안면도": {
     "error": "no results"
   },

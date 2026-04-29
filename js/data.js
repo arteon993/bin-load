@@ -44,6 +44,11 @@ const PHOTOS = {
   "꽃지해물칼국수": 'https://tong.visitkorea.or.kr/cms/resource/73/2850073_image2_1.jpg',
   "천리포수목원": 'https://tong.visitkorea.or.kr/cms/resource/72/3493772_image2_1.jpg',
   "만리포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/35/2653435_image2_1.jpg',
+  "운여해변": 'https://tong.visitkorea.or.kr/cms/resource/42/3339342_image2_1.jpg',
+  "두여해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/49/3340749_image2_1.jpg',
+  "기지포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/06/2716306_image2_1.jpg',
+  "바람아래해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/83/3055583_image2_1.jpg',
+  "몽산포해수욕장": 'https://tong.visitkorea.or.kr/cms/resource/86/3344186_image2_1.jpg',
 };
 
 // 카드에 photo가 비어있을 때 카테고리·키워드별 fallback 사진 (Unsplash)
@@ -384,7 +389,31 @@ const PLANS = {
         menu:'백사장 3km + 솔숲',
         review:'서해 5대 해수욕장 — 일몰 명소',
         kid:'백사장 모래놀이 + 조개잡이 ★★★★',
-        photo:'', tone:'#1A5276' },
+        photo: PHOTOS['만리포해수욕장'], tone:'#1A5276' },
+      { tag:'Q9', name:'기지포해수욕장', addr:'태안군 안면읍 창기리', lat:36.529, lon:126.337,
+        star:4, price:'무료', class:'low', km:9.0, min:14,
+        menu:'잔잔한 백사장 + 산책로 + 솔숲',
+        review:'안면도 중부 · 펜션 가까움 · 한적해서 아이 놀기 편함',
+        kid:'파도 약함 + 모래 곱움 = 6세 안전 ★★★★★',
+        photo: PHOTOS['기지포해수욕장'], tone:'#1F618D' },
+      { tag:'Q10', name:'운여해변', addr:'태안군 고남면 장곡리', lat:36.444, lon:126.353,
+        star:5, price:'무료', class:'low', km:17.0, min:24,
+        menu:'고요한 백사장 + 일몰 + 사진 명소',
+        review:'안면도 남단 · 관광객 적고 평화 · 인스타 핫플',
+        kid:'잔잔한 갯벌 + 산책 = 힘 안 들고 OK ★★★★',
+        photo: PHOTOS['운여해변'], tone:'#5B2C6F' },
+      { tag:'Q11', name:'두여해수욕장', addr:'태안군 고남면 장곡리', lat:36.443, lon:126.337,
+        star:4, price:'무료', class:'low', km:17.5, min:25,
+        menu:'한적한 백사장 + 야영장',
+        review:'운여해변 옆 · 작은 만 형태 · 한산함',
+        kid:'얕은 물 + 모래놀이 좋음 ★★★★',
+        photo: PHOTOS['두여해수욕장'], tone:'#1A5276' },
+      { tag:'Q12', name:'바람아래해수욕장', addr:'태안군 고남면 장곡리', lat:36.430, lon:126.360,
+        star:4, price:'무료', class:'low', km:18.0, min:26,
+        menu:'백사장 + 갯벌 + 사구',
+        review:'안면도 남단 숨은 명소 · 바람 세니 외투 챙기세요',
+        kid:'갯벌 조개잡이 가능 ★★★★',
+        photo: PHOTOS['바람아래해수욕장'], tone:'#7D6608' },
     ],
     cost: {
       rows: [
@@ -576,4 +605,4 @@ const NEARBY_FACILITIES = [
     km:8.0, min:14, note:'하나로마트 옆 · 현금 인출' },
 ];
 
-window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NEARBY_FACILITIES, FACILITY_META, NAVER, KMAP };
+window.DATA = { META, PLANS, COMPARE, COMPARE_VERDICT, MARKET_COMPARE, RETURN_DAY, NEARBY_FACILITIES, FACILITY_META, PHOTOS, NAVER, KMAP };
