@@ -99,7 +99,7 @@ function showView(name) {
     setTimeout(() => renderFacilities(), 100);
   }
   if (name === 'market') {
-    setTimeout(() => renderMarket(), 100);
+    setTimeout(() => { renderMarket(); updateMarketUI(); }, 100);
   }
 }
 
@@ -451,6 +451,25 @@ function toggleSelection(planCode, kind, tag) {
   updateSelectionUI(planCode);
   updateCompareUI();
 }
+// 시장 선택 (M: 'A' | 'B' | null)
+function toggleMarketSelection(code) {
+  const sel = getSelection();
+  sel.M = sel.M === code ? null : code;
+  setSelection(sel);
+  updateMarketUI();
+  updateCompareUI();
+}
+window.toggleMarketSelection = toggleMarketSelection;
+
+function updateMarketUI() {
+  const sel = getSelection().M || null;
+  document.querySelectorAll('[data-market]').forEach(c => {
+    c.classList.toggle('market-selected', c.dataset.market === sel);
+    const btn = c.querySelector('.market-rec-pick');
+    if (btn) btn.textContent = (c.dataset.market === sel) ? '✓ 선택됨' : '선택';
+  });
+}
+
 function updateReturnUI() {
   const sel = getSelection().R || {};
   document.querySelectorAll(`[data-card-plan="R"]`).forEach(c => {
@@ -536,8 +555,11 @@ function renderCompareTable(a, b, r) {
     return c;
   });
 
-  // 추가 — 복귀 옵션
+  // 추가 — 복귀 옵션 + 수산시장 선택 (공통)
+  const marketSel = (getSelection().M) || null;
+  const marketName = marketSel === 'A' ? '대천항수산시장' : marketSel === 'B' ? '백사장항' : '미선택';
   const extraRows = [
+    { label:'수산시장 (공통)', a: marketName, b: marketName, winner:'' },
     { label:'복귀 카페 (공통)', a: cafeName, b: cafeName, winner:'' },
     { label:'복귀 해장 (공통)', a: haejangName, b: haejangName, winner:'' },
   ];
@@ -1022,7 +1044,7 @@ function renderFacilities() {
   `;
 }
 
-// ═══ 수산시장 비교 — 별도 페이지 ═══
+// ═══ 수산시장 비교 — 별도 페이지 (장보기 가이드 + 추천 + 상세 비교) ═══
 function renderMarket() {
   const view = document.querySelector('.view-market');
   if (!view) return;
@@ -1037,12 +1059,124 @@ function renderMarket() {
     </div>
 
     <div class="plan-hero">
-      <div class="plan-tag">SEAFOOD MARKET</div>
-      <h1 class="plan-title serif">${M.title}</h1>
-      <div class="plan-subtitle">${M.sub}</div>
+      <div class="plan-tag">PRE-CHECKIN SHOPPING</div>
+      <h1 class="plan-title serif">펜션 가는 길 · 회·조개 장보기</h1>
+      <div class="plan-subtitle">방울방울펜션 BBQ용 · 어디 들렀다 갈까?</div>
     </div>
 
-    ${renderMarketCompare()}
+    <!-- 추천 카드 (Trip A / Trip B별) -->
+    <div class="section">
+      <div class="section-num">01  RECOMMEND</div>
+      <div class="section-title serif">코스에 맞는 시장 추천</div>
+      <div class="section-sub">선택한 시장은 비교 결과·카톡 공유에 자동 합산됩니다</div>
+    </div>
+    <div class="market-rec-grid">
+      <div class="market-rec-card" data-market="A" style="border-color:#C0392B;">
+        <div class="market-rec-tag" style="background:#C0392B;">Trip A 코스라면</div>
+        <div class="market-rec-name serif">${M.a.name}</div>
+        <div class="market-rec-stat">펜션까지 약 50km · 차로 1시간</div>
+        <div class="market-rec-meta">
+          <div>🐟 <strong>회·꽃게·도다리·우럭·광어</strong></div>
+          <div>📍 1층 직판 + 2층 즉석 식사</div>
+          <div>💰 시세제 + 자릿세 1~2만</div>
+        </div>
+        <div class="market-rec-actions">
+          <a href="${M.a.url}" target="_blank" rel="noopener" class="market-rec-link">📍 카카오맵</a>
+          <button onclick="toggleMarketSelection('A')" class="market-rec-pick">선택</button>
+        </div>
+      </div>
+      <div class="market-rec-card" data-market="B" style="border-color:#16A085;">
+        <div class="market-rec-tag" style="background:#16A085;">Trip B 코스라면 ★</div>
+        <div class="market-rec-name serif">${M.b.name}</div>
+        <div class="market-rec-stat">펜션까지 약 4km · 차로 7분 ⭐</div>
+        <div class="market-rec-meta">
+          <div>🦐 <strong>왕새우·봄꽃게·주꾸미·갑오징어</strong></div>
+          <div>📍 어촌계 직판 + 노점</div>
+          <div>💰 시세 30~40% 저렴 · 즉석 손질</div>
+        </div>
+        <div class="market-rec-actions">
+          <a href="${M.b.url}" target="_blank" rel="noopener" class="market-rec-link">📍 카카오맵</a>
+          <button onclick="toggleMarketSelection('B')" class="market-rec-pick">선택</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 장보기 가이드 -->
+    <div class="section">
+      <div class="section-num">02  SHOPPING LIST</div>
+      <div class="section-title serif">5월 장보기 가이드</div>
+      <div class="section-sub">제철 어종 + 어디서 사면 유리한지</div>
+    </div>
+    <div class="shop-guide">
+      <div class="shop-row">
+        <div class="shop-em">🦀</div>
+        <div class="shop-body">
+          <div class="shop-name">봄꽃게 (5월 절정)</div>
+          <div class="shop-price">1kg 약 2~3만원</div>
+          <div class="shop-where">두 시장 모두 OK · 알 꽉 찬 시기</div>
+        </div>
+      </div>
+      <div class="shop-row">
+        <div class="shop-em">🦐</div>
+        <div class="shop-body">
+          <div class="shop-name">왕새우 (자연산 대하는 가을·양식 5월)</div>
+          <div class="shop-price">1kg 약 5~6만원</div>
+          <div class="shop-where">백사장항 직판이 가장 저렴 ★</div>
+        </div>
+      </div>
+      <div class="shop-row">
+        <div class="shop-em">🐟</div>
+        <div class="shop-body">
+          <div class="shop-name">활어회 (광어·우럭·도다리)</div>
+          <div class="shop-price">시세 (kg당 3~5만)</div>
+          <div class="shop-where">대천항 1층 종류 다양 · 즉석 손질 가능</div>
+        </div>
+      </div>
+      <div class="shop-row">
+        <div class="shop-em">🐚</div>
+        <div class="shop-body">
+          <div class="shop-name">조개·바지락·키조개</div>
+          <div class="shop-price">1kg 약 1~2만원</div>
+          <div class="shop-where">백사장항 어촌계 ★ · BBQ 안주 최고</div>
+        </div>
+      </div>
+      <div class="shop-row">
+        <div class="shop-em">🦑</div>
+        <div class="shop-body">
+          <div class="shop-name">주꾸미·갑오징어 (5월 제철)</div>
+          <div class="shop-price">1kg 약 2~3만원</div>
+          <div class="shop-where">백사장항·서해 항구 강점</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 꿀팁 -->
+    <div class="section">
+      <div class="section-num">03  TIPS</div>
+      <div class="section-title serif">현지 꿀팁</div>
+    </div>
+    <div class="tips-list">
+      <div class="tip-row"><span>🧊</span> <b>보냉백 + 아이스팩</b> 꼭 챙기세요. 1시간 운반엔 필수.</div>
+      <div class="tip-row"><span>🔪</span> <b>회 손질비</b>는 보통 1만원 안팎. 1층서 사고 손질 부탁 → 2층/펜션 가서 차림.</div>
+      <div class="tip-row"><span>💵</span> <b>현금 챙기세요</b>. 어촌계 직판은 카드 안 되는 곳도 있음.</div>
+      <div class="tip-row"><span>🤝</span> <b>흥정 가능</b>. 1kg 단위로 묶거나 여러 종류 같이 사면 깎아줍니다.</div>
+      <div class="tip-row"><span>🕒</span> <b>오전~점심이 신선</b>. 늦은 오후엔 종류 줄어듦.</div>
+      <div class="tip-row"><span>🍶</span> 펜션 BBQ엔 <b>새우구이·조개구이</b>가 가성비 1순위.</div>
+    </div>
+
+    <!-- 상세 비교표 (접기) -->
+    <div class="section">
+      <div class="section-num">04  DETAILS</div>
+      <details class="market-details">
+        <summary class="market-details-summary">
+          <span class="serif">상세 비교표 (10개 항목)</span>
+          <span class="market-details-hint">탭하여 펼치기 ▾</span>
+        </summary>
+        <div class="market-details-body">
+          ${renderMarketCompare()}
+        </div>
+      </details>
+    </div>
 
     <a href="javascript:history.back()" class="sel-cta" style="margin: 24px 16px 0;">
       <span>↩</span>
@@ -1381,15 +1515,18 @@ function buildShareDescription(mode) {
     const a = calcSelection('A');
     const b = calcSelection('B');
     const ret = calcReturn();
+    const mSelNow = getSelection().M;
     const aTotal = a.totalCost + ret.totalCost;
     const bTotal = b.totalCost + ret.totalCost;
     const lines = ['[Trip A·B 비교 결과]'];
-    if (a.items.length || b.items.length || ret.items.length) {
+    if (a.items.length || b.items.length || ret.items.length || mSelNow) {
       lines.push(`Trip A: ${fmt(aTotal)}  vs  Trip B: ${fmt(bTotal)}`);
       const cheap = aTotal < bTotal ? 'A' : (bTotal < aTotal ? 'B' : null);
       if (cheap) lines.push(`→ Trip ${cheap}안이 ${fmt(Math.abs(aTotal - bTotal))} 더 저렴`);
       if (a.sel.lunch) lines.push(`A 점심: ${findName(D.PLANS.A.lunch, a.sel.lunch)}`);
       if (b.sel.lunch) lines.push(`B 점심: ${findName(D.PLANS.B.lunch, b.sel.lunch)}`);
+      const mSel = getSelection().M;
+      if (mSel) lines.push(`수산시장: ${mSel === 'A' ? '대천항수산시장' : '백사장항'}`);
       if (ret.sel.cafe) lines.push(`복귀 카페: ${findName(D.RETURN_DAY.cafes, ret.sel.cafe)}`);
       if (ret.sel.haejang) lines.push(`복귀 해장: ${findName(D.RETURN_DAY.haejang, ret.sel.haejang)}`);
     } else {
