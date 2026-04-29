@@ -188,6 +188,7 @@ function renderMenu() {
       ${renderBanner('A', D.PLANS.A, false)}
       ${renderBanner('B', D.PLANS.B, false)}
       ${renderCompareBanner()}
+      ${renderMarketBanner()}
       ${renderFacilitiesBanner()}
     </div>
 
@@ -227,6 +228,24 @@ function renderBanner(code, plan, recommend) {
         <div class="banner-stat">
           <div class="banner-stat-num">${plan.kpi.toll === 0 ? '0' : plan.kpi.toll.toLocaleString()}<span style="font-size:14px;color:var(--text-mid);">원</span></div>
           <div class="banner-stat-label">통행료</div>
+        </div>
+      </div>
+      <div class="banner-arrow">→</div>
+    </a>
+  `;
+}
+
+function renderMarketBanner() {
+  return `
+    <a href="#market" class="banner">
+      <div class="banner-tag">SEAFOOD MARKET</div>
+      <div class="banner-title serif">🐟 펜션 가는 길 장보기</div>
+      <div class="banner-sub">대천항 vs 백사장항 · 회·꽃게·새우 어디서 살까</div>
+      <div class="banner-stats" style="border-top:none; padding-top:0;">
+        <div style="display:flex; gap:8px; font-size:12px;">
+          <span style="color:#C0392B;">대천항</span>
+          <span style="color:var(--text-low);">vs</span>
+          <span style="color:#16A085;">백사장항 ★</span>
         </div>
       </div>
       <div class="banner-arrow">→</div>
@@ -416,12 +435,21 @@ function renderPlan(code) {
 
 // ═══ 선택 시스템 (점심 1개 + 놀거리 1~2개) ═══
 const SEL_KEY = 'binload_selection_v1';
+// 공유 링크로 들어온 경우엔 메모리만 사용 (localStorage 오염 방지)
+let sharedSelection = null;
+let isSharedMode = false;
+
 function getSelection() {
+  if (isSharedMode) return sharedSelection || {};
   try { return JSON.parse(localStorage.getItem(SEL_KEY) || '{}'); }
   catch { return {}; }
 }
 function setSelection(s) {
-  localStorage.setItem(SEL_KEY, JSON.stringify(s));
+  if (isSharedMode) {
+    sharedSelection = s;  // 메모리만 — 새로고침/일반 링크 진입 시 사라짐
+  } else {
+    localStorage.setItem(SEL_KEY, JSON.stringify(s));
+  }
 }
 function toggleSelection(planCode, kind, tag) {
   const sel = getSelection();
@@ -1609,27 +1637,44 @@ function shareToKakao(mode) {
 }
 
 // ═══ 초기화 ═══
-// URL에 ?sel=... 있으면 적용 (공유받은 선택)
+// URL에 ?sel=... 있으면 메모리에만 적용 (localStorage 오염 X)
+// 일반 링크(?sel= 없음)로 들어오면 localStorage 리셋
 function applySharedSelectionFromURL() {
   const params = new URLSearchParams(location.search);
   const sel = params.get('sel');
-  if (!sel) return false;
-  const decoded = decodeSelectionFromURL(sel);
-  if (decoded && typeof decoded === 'object') {
-    setSelection(decoded);
-    // URL은 깔끔하게 ?sel= 빼주기
-    const cleanUrl = location.pathname + location.hash;
-    history.replaceState(null, '', cleanUrl);
-    setTimeout(() => {
-      const banner = document.createElement('div');
-      banner.className = 'shared-banner';
-      banner.innerHTML = '✨ 공유받은 선택이 적용됐어요';
-      document.body.appendChild(banner);
-      setTimeout(() => banner.remove(), 3500);
-    }, 800);
-    return true;
+  if (sel) {
+    const decoded = decodeSelectionFromURL(sel);
+    if (decoded && typeof decoded === 'object') {
+      isSharedMode = true;
+      sharedSelection = decoded;
+      const cleanUrl = location.pathname + location.hash;
+      history.replaceState(null, '', cleanUrl);
+      setTimeout(() => showSharedToast(true), 800);
+      return true;
+    }
   }
+  // 일반 진입 — 공유 모드 해제 + localStorage 리셋
+  isSharedMode = false;
+  sharedSelection = null;
+  try { localStorage.removeItem(SEL_KEY); } catch {}
   return false;
+}
+
+function showSharedToast(isShared) {
+  const banner = document.createElement('div');
+  banner.className = 'shared-banner';
+  banner.innerHTML = isShared
+    ? '✨ 공유받은 선택을 보고 있어요 (이 페이지 한정)'
+    : '메모리 리셋됨';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 3500);
+  // 공유 모드 알리는 상단 배지
+  if (isShared && !document.querySelector('.shared-mode-badge')) {
+    const badge = document.createElement('div');
+    badge.className = 'shared-mode-badge';
+    badge.innerHTML = '👀 공유받은 보기 (변경은 저장되지 않아요) · <a href="/">내 일정 새로 시작 →</a>';
+    document.body.appendChild(badge);
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
